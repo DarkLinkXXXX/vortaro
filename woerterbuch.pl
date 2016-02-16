@@ -1,4 +1,4 @@
-#! /usr/bin/perl
+#!/usr/bin/env perl
 
 # before you start: download dictionary file from dict.cc an rename it as wb.txt
 # put it in the same directory as this script.
