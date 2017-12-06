@@ -41,12 +41,11 @@ def download():
     directions = '''\
 The download page will open in a web browser. Download the dictionary
 of interest (as zipped text), unzip it, and put the text file inside this
-directory: ~/.dict.cc/
-
-Press enter when you are ready.
-'''
+directory: ~/.dict.cc/'''
     for line in textwrap.wrap(directions, COLUMNS):
         stdout.write(line + '\n')
+    stdout.write('\n')
+    stdout.write('Press enter when you are ready.\n')
     input()
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
