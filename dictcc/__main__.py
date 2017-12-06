@@ -1,4 +1,4 @@
-from . import download
+from . import download, look_up
 import horetu
 
-horetu.cli(horetu.Program([download], name='dict.cc'))
+horetu.cli(horetu.Program([download, look_up], name='dict.cc'))
