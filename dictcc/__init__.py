@@ -57,6 +57,7 @@ def look_up(search, limit: int=ROWS-2, *,
     Search for a word in the dictionaries.
 
     :param search: The word/fragment you are searching for
+    :param limit: Maximum number of words to return
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     '''
