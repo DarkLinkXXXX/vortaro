@@ -39,6 +39,8 @@ class Table(object):
             python3 -m dictcc lookup -from sv är 10
         '''
         tpl_cell = '\033[4m%s\033[0m'
+        adj = len(tpl_cell) - 2
+
         if rows:
             lines = self.lines[:rows]
         else:
@@ -48,19 +50,24 @@ class Table(object):
         for line in lines:
             for i, cell in enumerate(line[:-1]):
                 widths[i] = max(widths[i], len(cell))
-        widths[2] += len(tpl_cell) - 2
+        widths[2] += adj
+
     #   tpl_line = '{:%d}\t{:%d}:{:%d}\t{:%d}:{}\n' % tuple(widths)
-        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s\n' % tuple(widths)
+        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
     #   tpl_line = tpl_line.replace('\t', ' | ')
         tpl_line = tpl_line.replace('\t', '   ')
 
         for line in lines:
             highlighted = line.from_word.replace(self.search, tpl_cell % self.search)
-            yield tpl_line % (
+            formatted = tpl_line % (
                 line.part_of_speech,
                 line.from_lang, highlighted,
                 line.to_lang, line.to_word,
             )
+            if cols:
+                yield formatted[:(cols+adj)] + '\n'
+            else:
+                yield formatted + '\n'
 
     def __repr__(self):
         return 'Table(search=%s, widths=%s, lines=%s)' % \

@@ -50,6 +50,7 @@ directory: ~/.dict.cc/'''
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
 def lookup(search, limit: int=ROWS-2, *,
+           width: int=COLUMNS,
            from_langs: [tuple(dictionaries.LANGUAGES)]=(),
            to_langs: [tuple(dictionaries.LANGUAGES)]=()):
     '''
@@ -57,6 +58,7 @@ def lookup(search, limit: int=ROWS-2, *,
 
     :param search: The word/fragment you are searching for
     :param limit: Maximum number of words to return
+    :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     '''
@@ -88,5 +90,5 @@ def lookup(search, limit: int=ROWS-2, *,
                         if search in from_word:
                             table.append(line)
     table.sort()
-    for row in table.render(COLUMNS, limit):
+    for row in table.render(width, limit):
         stdout.write(row)
