@@ -9,10 +9,31 @@ Install from PyPI. ::
 
     pip3 install dictcc
 
-Run this to see the available commands. ::
+Follow these directions to download a dictionary. ::
+
+    python3 -m dictcc download
+
+Run this to confirm that you have saved the dictionary properly. ::
+
+    python3 -m dictcc ls
+
+Then you can look up stuff like this. ::
+
+    python3 -m dictcc lookup elephant
+
+Restrict to particular languages like this. ::
+
+    python3 -m dictcc lookup -to hr -to sv -from en elephant
+
+Run these to see help. ::
 
     python3 -m dictcc
+    python3 -m dictcc download -help
+    python3 -m dictcc ls -help
+    python3 -m dictcc lookup -help
 
+Shell integration
+-----------------
 Consider setting up an alias. Here's one for tcsh. ::
 
     alias dict.cc python3 -m dictcc lookup

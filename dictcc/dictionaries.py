@@ -34,7 +34,7 @@ def build_index(directory):
                 firstline = fp.readline().strip()
             m = re.match(_regex, firstline)
             if m:
-                f, t = (x.decode('utf-8') for x in m.groups())
+                f, t = (x.decode('utf-8').lower() for x in m.groups())
                 languages[f][t] = Dictionary(file, False)
                 languages[t][f] = Dictionary(file, True)
     return languages
