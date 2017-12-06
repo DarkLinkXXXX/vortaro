@@ -1,5 +1,18 @@
 from sys import stdout
 
+from . import dictionaries
+from .lines import Line, Table
+
+def ls(*languages):
+    '''
+    List available dictionaries.
+
+    :param languages: If you pass any languages, limit the listing to
+        dictionaries from the passed languages to other languages.
+    '''
+    for pair in dictionaries.ls(languages or None):
+        stdout.write('%s -> %s\n' % pair)
+
 def download():
     '''
     Download a dictionary.
@@ -24,9 +37,6 @@ def look_up(search, from_langs: [str]=(), to_langs: [str]=()):
     :param to_langs: Languages to look for translations, defaults to all
     '''
     from itertools import product
-
-    from . import dictionaries
-    from .lines import Line, Table
 
     if from_langs and to_langs:
         pairs = product(from_langs, to_langs)

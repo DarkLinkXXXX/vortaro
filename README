@@ -1,0 +1,17 @@
+Look up words in dict.cc dictionaries.
+
+Install from PyPI. ::
+
+    pip3 install dictcc
+
+Run. ::
+
+    python3 -m dictcc
+
+Consider setting up an alias. Here's one for tcsh. ::
+
+    alias dict.cc python3 -m dictcc look_up
+
+Here's one for sh. ::
+
+    alias dict.cc='python3 -m dictcc look_up'
