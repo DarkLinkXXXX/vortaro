@@ -15,9 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from sys import stdout
+from shutil import get_terminal_size
 
 from . import dictionaries
 from .lines import Line, Table
+
+COLUMNS, ROWS = get_terminal_size((80, 20))
 
 def ls(*languages):
     '''
@@ -44,7 +47,8 @@ Press enter when you are ready.
     input()
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
-def look_up(search, from_langs: [str]=(), to_langs: [str]=()):
+def look_up(search, limit: int=ROWS-2, *,
+            from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
 
@@ -70,8 +74,12 @@ def look_up(search, from_langs: [str]=(), to_langs: [str]=()):
             for rawline in fp:
                 if not (rawline.startswith('#') or not rawline.strip()):
                     from_word, to_word, pos = rawline.rstrip('\n').split('\t')
-                    line = Line(from_lang, from_word, to_lang, to_word, pos)
+                    line = Line(pos, from_lang, from_word, to_lang, to_word)
                     if search in line.from_word:
                         table.append(line)
             fp.close()
-    stdout.write(str(table))
+    table.sort()
+    for i, row in enumerate(table.render()):
+        stdout.write(row[:COLUMNS])
+        if i+1 == limit:
+            break

@@ -22,7 +22,7 @@ setup(name='dictcc',
       description='Query dict.cc dictionaries.',
       url='https://thomaslevine.com/scm/dict.cc/',
       packages=['dictcc'],
-      install_requires=['horetu>=0.4.1']
+      install_requires=['horetu>=0.4.1'],
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
