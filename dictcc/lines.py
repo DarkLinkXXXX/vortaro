@@ -34,9 +34,13 @@ class Table(object):
         ))
     def render(self, cols, rows):
         tpl_cell = '\033[4m{}\033[0m'
+        if rows:
+            lines = self.lines[:rows]
+        else:
+            lines = self.lines
 
         widths = [0, 0, 0, 0]
-        for line in self.lines[:rows]:
+        for line in lines:
             for i, cell in enumerate(line[:-1]):
                 widths[i] = max(widths[i], len(cell))
         widths[2] += len(tpl_cell) - 2
@@ -44,7 +48,7 @@ class Table(object):
     #   tpl_line = tpl_line.replace('\t', ' | ')
         tpl_line = tpl_line.replace('\t', '   ')
 
-        for line in self.lines[:rows]:
+        for line in lines:
             highlighted = line.from_word.replace(self.search, tpl_cell.format(self.search))
             yield tpl_line.format(
                 line.part_of_speech,

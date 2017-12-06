@@ -83,7 +83,9 @@ def lookup(search, limit: int=ROWS-2, *,
                             to_word, from_word = left_word, right_word
                         else:
                             from_word, to_word = left_word, right_word
-                        line = Line(pos, from_lang, from_word, to_lang, to_word)
+                        line = Line(pos, from_lang,
+                                    from_word.split('[', 1)[0].rstrip(),
+                                    to_lang, to_word)
                         if search in from_word:
                             table.append(line)
     table.sort()
