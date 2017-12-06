@@ -19,13 +19,10 @@ from collections import namedtuple
 Line = namedtuple('Line', ('part_of_speech', 'from_lang', 'from_word', 'to_lang', 'to_word'))
 
 class Table(object):
-    def __init__(self, search, widths=None, lines=None):
+    def __init__(self, search, lines=None):
         self.search = search
-        self.widths = widths if widths else [0, 0, 0, 0, 0]
         self.lines = lines if lines else []
     def append(self, line):
-        for i, text in enumerate(line):
-            self.widths[i] = max(self.widths[i], len(text))
         self.lines.append(line)
     def sort(self):
         self.lines.sort(key=lambda line: (
@@ -35,9 +32,13 @@ class Table(object):
             line.to_lang,
             line.to_word,
         ))
-    def render(self):
-        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s\n' % tuple(self.widths[:-1])
-        for line in self.lines:
+    def render(self, cols, rows):
+        widths = [0, 0, 0, 0]
+        for line in self.lines[:rows]:
+            for i, cell in enumerate(line[:-1]):
+                widths[i] = max(widths[i], len(cell))
+        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s\n' % tuple(widths)
+        for line in self.lines[:rows]:
             tpl_cell = '\033[4m%s\033[0m'
             highlighted = line.from_word.replace(self.search, tpl_cell % self.search)
             yield tpl_line % (
@@ -45,6 +46,7 @@ class Table(object):
                 line.from_lang, highlighted,
                 line.to_lang, line.to_word,
             )
+
     def __repr__(self):
         return 'Table(search=%s, widths=%s, lines=%s)' % \
-            tuple(map(repr, (self.search, self.widths, self.lines)))
+            tuple(map(repr, (self.search, self.lines)))

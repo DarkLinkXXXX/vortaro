@@ -1,4 +1,9 @@
+Tom's dict.cc reader
+====================
 Look up words in dict.cc dictionaries.
+
+Usage
+-----
 
 Install from PyPI. ::
 
@@ -16,4 +21,13 @@ Here's one for sh. ::
 
     alias dict.cc='python3 -m dictcc look_up'
 
+Implementation
+--------------
+This is a Python module.
 Source code is at https://thomaslevine.com/scm/dict.cc/.
+The command line interface uses `horetu <https://pypi.python.org/pypi/horetu/>`_.
+
+History
+-------
+I was inspired by Matthias Bloch's 
+`woerterbuch.pl <https://www1.dict.cc/download/woerterbuch.pl>`_.

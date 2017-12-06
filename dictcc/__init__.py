@@ -79,7 +79,5 @@ def look_up(search, limit: int=ROWS-2, *,
                         table.append(line)
             fp.close()
     table.sort()
-    for i, row in enumerate(table.render()):
-        stdout.write(row[:COLUMNS])
-        if i+1 == limit:
-            break
+    for row in table.render(COLUMNS, limit):
+        stdout.write(row)
