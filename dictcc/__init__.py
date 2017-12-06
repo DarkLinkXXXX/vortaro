@@ -48,7 +48,8 @@ Press enter when you are ready.
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
 def look_up(search, limit: int=ROWS-2, *,
-            from_langs: [str]=(), to_langs: [str]=()):
+            from_langs: [tuple(dictionaries.LANGUAGES)]=(),
+            to_langs: [tuple(dictionaries.LANGUAGES)]=()):
     '''
     Search for a word in the dictionaries.
 
@@ -69,15 +70,19 @@ def look_up(search, limit: int=ROWS-2, *,
 
     table = Table(search)
     for from_lang, to_lang in pairs:
-        fp = dictionaries.open(from_lang, to_lang)
-        if fp:
-            for rawline in fp:
-                if not (rawline.startswith('#') or not rawline.strip()):
-                    from_word, to_word, pos = rawline.rstrip('\n').split('\t')
-                    line = Line(pos, from_lang, from_word, to_lang, to_word)
-                    if search in line.from_word:
-                        table.append(line)
-            fp.close()
+        d = dictionaries.open(from_lang, to_lang)
+        if d:
+            with d.path.open() as fp:
+                for rawline in fp:
+                    if not (rawline.startswith('#') or not rawline.strip()):
+                        left_word, right_word, pos = rawline.rstrip('\n').split('\t')
+                        if d.reversed:
+                            to_word, from_word = left_word, right_word
+                        else:
+                            from_word, to_word = left_word, right_word
+                        line = Line(pos, from_lang, from_word, to_lang, to_word)
+                        if search in from_word:
+                            table.append(line)
     table.sort()
     for row in table.render(COLUMNS, limit):
         stdout.write(row)

@@ -16,37 +16,33 @@
 
 import re
 from sys import stdout
+from collections import defaultdict, namedtuple
 from pathlib import Path
 from os import environ
 
+Dictionary = namedtuple('Dictionary', ('path', 'reversed'))
 _directory = Path(environ.get('HOME', '.')) / '.dict.cc'
-_languages = {}
+LANGUAGES = defaultdict(dict)
+_regex = re.compile(r'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
+for file in _directory.iterdir():
+    if file.name.endswith('.txt'):
+        with file.open() as fp:
+            firstline = fp.readline().strip()
+        m = re.match(_regex, firstline)
+        f, t = m.groups()
+        LANGUAGES[f][t] = Dictionary(file, False)
+        LANGUAGES[t][f] = Dictionary(file, True)
 
 def open(from_lang, to_lang):
-    file = (_directory / ('%s-%s.txt' % (from_lang, to_lang)))
-    if to_lang in _languages.get(from_lang, set()):
-        return file.open()
+    return LANGUAGES.get(from_lang, {}).get(to_lang)
 
 def ls(froms=None):
-    _index()
     for from_lang in sorted(froms if froms else from_langs()):
         for to_lang in sorted(to_langs(from_lang)):
             yield from_lang, to_lang
 
 def from_langs():
-    _index()
-    return set(_languages)
+    return set(LANGUAGES)
 
 def to_langs(from_lang):
-    _index()
-    return set(_languages.get(from_lang, set()))
-
-def _index():
-    if not _languages:
-        for file in _directory.iterdir():
-            m = re.match(r'^([a-z]+)-([a-z]+)\.txt$', file.name)
-            if m:
-                f, t = m.groups()
-                if f not in _languages:
-                    _languages[f] = set()
-                _languages[f].add(t)
+    return set(LANGUAGES.get(from_lang, set()))
