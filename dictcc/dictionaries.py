@@ -23,13 +23,13 @@ from os import environ
 Dictionary = namedtuple('Dictionary', ('path', 'reversed'))
 _directory = Path(environ.get('HOME', '.')) / '.dict.cc'
 LANGUAGES = defaultdict(dict)
-_regex = re.compile(r'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
+_regex = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
 for file in _directory.iterdir():
     if file.name.endswith('.txt'):
-        with file.open() as fp:
+        with file.open('rb') as fp:
             firstline = fp.readline().strip()
         m = re.match(_regex, firstline)
-        f, t = m.groups()
+        f, t = (x.decode('utf-8') for x in m.groups())
         LANGUAGES[f][t] = Dictionary(file, False)
         LANGUAGES[t][f] = Dictionary(file, True)
 
