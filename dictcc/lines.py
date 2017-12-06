@@ -33,6 +33,11 @@ class Table(object):
             line.to_word,
         ))
     def render(self, cols, rows):
+        '''
+        Supporting multibyte characters was a bit annoying. ::
+
+            python3 -m dictcc lookup -from sv är 10
+        '''
         tpl_cell = '\033[4m{}\033[0m'
         if rows:
             lines = self.lines[:rows]

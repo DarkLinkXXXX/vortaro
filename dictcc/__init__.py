@@ -80,12 +80,11 @@ def lookup(search, limit: int=ROWS-2, *,
                     if not (rawline.startswith('#') or not rawline.strip()):
                         left_word, right_word, pos = rawline.rstrip('\n').split('\t')
                         if d.reversed:
-                            to_word, from_word = left_word, right_word
+                            to_word, _from_word = left_word, right_word
                         else:
-                            from_word, to_word = left_word, right_word
-                        line = Line(pos, from_lang,
-                                    from_word.split('[', 1)[0].rstrip(),
-                                    to_lang, to_word)
+                            _from_word, to_word = left_word, right_word
+                        from_word = _from_word.split('[', 1)[0].rstrip()
+                        line = Line(pos, from_lang, from_word, to_lang, to_word)
                         if search in from_word:
                             table.append(line)
     table.sort()
