@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import download, look_up, ls
+from . import download, lookup, ls
 import horetu
 
 horetu.cli(horetu.Program([
     ls,
     download,
-    look_up,
+    lookup,
 ], name='dict.cc'))

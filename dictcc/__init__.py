@@ -50,9 +50,9 @@ Press enter when you are ready.
     input()
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
-def look_up(search, limit: int=ROWS-2, *,
-            from_langs: [tuple(dictionaries.LANGUAGES)]=(),
-            to_langs: [tuple(dictionaries.LANGUAGES)]=()):
+def lookup(search, limit: int=ROWS-2, *,
+           from_langs: [tuple(dictionaries.LANGUAGES)]=(),
+           to_langs: [tuple(dictionaries.LANGUAGES)]=()):
     '''
     Search for a word in the dictionaries.
 

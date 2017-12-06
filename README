@@ -15,11 +15,11 @@ Run this to see the available commands. ::
 
 Consider setting up an alias. Here's one for tcsh. ::
 
-    alias dict.cc python3 -m dictcc look_up
+    alias dict.cc python3 -m dictcc lookup
 
 Here's one for sh. ::
 
-    alias dict.cc='python3 -m dictcc look_up'
+    alias dict.cc='python3 -m dictcc lookup'
 
 Implementation
 --------------
