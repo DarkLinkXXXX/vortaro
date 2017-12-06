@@ -14,7 +14,7 @@ def open(from_lang, to_lang):
 def ls(froms=None):
     _index()
     for from_lang in sorted(froms if froms else from_langs()):
-        for to_lang in sorted(to_langs()):
+        for to_lang in sorted(to_langs(from_lang)):
             yield from_lang, to_lang
 
 def from_langs():
