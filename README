@@ -21,6 +21,7 @@ Then you can look up stuff like this. ::
 
     python3 -m dictcc lookup elephant
 
+The default is to look for the phrase in all dictionaries.
 Restrict to particular languages like this. ::
 
     python3 -m dictcc lookup -to hr -to sv -from en elephant
@@ -50,5 +51,5 @@ The command line interface uses `horetu <https://pypi.python.org/pypi/horetu/>`_
 
 History
 -------
-I based the format of each output line on
+The idea of underlining the search term comes from
 Matthias Bloch's `woerterbuch.pl <https://www1.dict.cc/download/woerterbuch.pl>`_.
