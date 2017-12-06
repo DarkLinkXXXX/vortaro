@@ -14,11 +14,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import download, look_up, ls
-import horetu
+from distutils.core import setup
 
-horetu.cli(horetu.Program([
-    ls,
-    download,
-    look_up,
-], name='dict.cc'))
+setup(name='dictcc',
+      author='Thomas Levine',
+      author_email='_@thomaslevine.com',
+      description='Query dict.cc dictionaries.',
+      url='https://thomaslevine.com/scm/dict.cc/',
+      packages=['dictcc'],
+      install_requires=['horetu>=0.4.1']
+      classifiers=[
+          'Programming Language :: Python :: 3.6',
+      ],
+      version='0.1',
+      license='GPL',
+      )

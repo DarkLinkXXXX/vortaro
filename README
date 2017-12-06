@@ -4,7 +4,7 @@ Install from PyPI. ::
 
     pip3 install dictcc
 
-Run. ::
+Run this to see the available commands. ::
 
     python3 -m dictcc
 
@@ -15,3 +15,5 @@ Consider setting up an alias. Here's one for tcsh. ::
 Here's one for sh. ::
 
     alias dict.cc='python3 -m dictcc look_up'
+
+Source code is at https://thomaslevine.com/scm/dict.cc/.
