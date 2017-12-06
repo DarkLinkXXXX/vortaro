@@ -33,15 +33,20 @@ class Table(object):
             line.to_word,
         ))
     def render(self, cols, rows):
+        tpl_cell = '\033[4m{}\033[0m'
+
         widths = [0, 0, 0, 0]
         for line in self.lines[:rows]:
             for i, cell in enumerate(line[:-1]):
                 widths[i] = max(widths[i], len(cell))
-        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s\n' % tuple(widths)
+        widths[2] += len(tpl_cell) - 2
+        tpl_line = '{:%d}\t{:%d}:{:%d}\t{:%d}:{}\n' % tuple(widths)
+    #   tpl_line = tpl_line.replace('\t', ' | ')
+        tpl_line = tpl_line.replace('\t', '   ')
+
         for line in self.lines[:rows]:
-            tpl_cell = '\033[4m%s\033[0m'
-            highlighted = line.from_word.replace(self.search, tpl_cell % self.search)
-            yield tpl_line % (
+            highlighted = line.from_word.replace(self.search, tpl_cell.format(self.search))
+            yield tpl_line.format(
                 line.part_of_speech,
                 line.from_lang, highlighted,
                 line.to_lang, line.to_word,
