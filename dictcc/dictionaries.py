@@ -15,23 +15,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
+import pickle
 from sys import stdout
 from collections import defaultdict, namedtuple
 from pathlib import Path
 from os import environ
 
+INDEX = 'index.p'
 Dictionary = namedtuple('Dictionary', ('path', 'reversed'))
-_directory = Path(environ.get('HOME', '.')) / '.dict.cc'
-LANGUAGES = defaultdict(dict)
-_regex = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
-for file in _directory.iterdir():
-    if file.name.endswith('.txt'):
-        with file.open('rb') as fp:
-            firstline = fp.readline().strip()
-        m = re.match(_regex, firstline)
-        f, t = (x.decode('utf-8') for x in m.groups())
-        LANGUAGES[f][t] = Dictionary(file, False)
-        LANGUAGES[t][f] = Dictionary(file, True)
+DIRECTORY = Path(environ.get('HOME', '.')) / '.dict.cc'
+
+def build_index(directory):
+    languages = defaultdict(dict)
+    _regex = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
+    for file in directory.iterdir():
+        if file.name != INDEX:
+            with file.open('rb') as fp:
+                firstline = fp.readline().strip()
+            m = re.match(_regex, firstline)
+            if m:
+                f, t = (x.decode('utf-8') for x in m.groups())
+                languages[f][t] = Dictionary(file, False)
+                languages[t][f] = Dictionary(file, True)
+    return languages
 
 def open(from_lang, to_lang):
     return LANGUAGES.get(from_lang, {}).get(to_lang)
@@ -46,3 +52,20 @@ def from_langs():
 
 def to_langs(from_lang):
     return set(LANGUAGES.get(from_lang, set()))
+
+def _mtime(path):
+    return path.stat().st_mtime
+
+# Load language mappings.
+_mtimes = tuple(_mtime(f) for f in DIRECTORY.iterdir() if f.name != INDEX)
+if _mtimes:
+    if (not (DIRECTORY/INDEX).exists()) or \
+            (max(_mtimes) > _mtime(DIRECTORY/INDEX)):
+        LANGUAGES = build_index(DIRECTORY)
+        with (DIRECTORY / INDEX).open('wb') as fp:
+            pickle.dump(LANGUAGES, fp)
+    else:
+        with (DIRECTORY / INDEX).open('rb') as fp:
+            LANGUAGES = pickle.load(fp)
+else:
+    LANGUAGES = {}
