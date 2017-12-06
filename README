@@ -29,5 +29,5 @@ The command line interface uses `horetu <https://pypi.python.org/pypi/horetu/>`_
 
 History
 -------
-I was inspired by Matthias Bloch's 
-`woerterbuch.pl <https://www1.dict.cc/download/woerterbuch.pl>`_.
+I based the format of each output line on
+Matthias Bloch's `woerterbuch.pl <https://www1.dict.cc/download/woerterbuch.pl>`_.
