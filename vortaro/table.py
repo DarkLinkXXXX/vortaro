@@ -53,9 +53,10 @@ class Table(object):
         else:
             results = self.results
 
+        print(results)
         widths = _widths(results)
 
-        tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % tuple(widths)
+        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
         for result in results:

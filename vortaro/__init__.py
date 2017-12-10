@@ -34,7 +34,7 @@ FORMATS = OrderedDict((
     ('cc-cedict', cedict),
     ('espdic', espdic),
 ))
-DB = 8 # Redis DB number
+DB = 7 # Redis DB number
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
