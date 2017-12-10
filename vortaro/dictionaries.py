@@ -19,7 +19,10 @@ import pickle
 from sys import stdout
 from collections import defaultdict, namedtuple, OrderedDict
 
-from . import paths, dictcc, cedict, espdic
+from . import (
+    paths, alphabets,
+    dictcc, cedict, espdic,
+) 
 
 FORMATS = OrderedDict((
     ('dict.cc', dictcc),
@@ -29,17 +32,47 @@ FORMATS = OrderedDict((
 
 Dictionary = namedtuple('Dictionary', ('format', 'path', 'reverse'))
 
-def index(data):
+def word_index(data, languages, pairs):
+    file = paths.word_index(data)
+    if file.exists():
+        with file.open('rb') as fp:
+            i = pickle.load(fp)
+    else:
+        i = {}
+
+    change = False
+    for pair in pairs:
+        from_lang, to_lang = pair
+        for d in languages.get(from_lang, {}).get(to_lang):
+            if pair not in i:
+                i[pair] = {}
+                if d.path not in i:
+                    i[pair][d.path] = []
+                    change = True
+                    from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
+
+                    for line in FORMATS[d.format].read(d.path):
+                        line.reverse = d.reverse
+                        line.search_trans = from_roman(line.from_word)
+                        i[pair][d.path].append(line)
+
+    if change:
+        with file.open('wb') as fp:
+            pickle.dump(i, fp)
+
+    return i
+
+def file_index(data):
     '''
     Load the dictionary language index, rebuilding it if necessary.
 
     :param pathlib.Path data: Path to the data directory
     '''
-    i = paths.index(data)
+    i = paths.file_index(data)
     mtimes = tuple(map(_mtime, _find(data)))
     if mtimes:
         if (not i.exists()) or (max(mtimes) > _mtime(i)):
-            languages = _index(data)
+            languages = _file_index(data)
             with i.open('wb') as fp:
                 pickle.dump(languages, fp)
         else:
@@ -49,7 +82,7 @@ def index(data):
         languages = {}
     return languages
 
-def _index(data):
+def _file_index(data):
     '''
     Build the dictionary language index.
 

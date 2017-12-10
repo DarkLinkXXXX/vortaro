@@ -20,5 +20,7 @@ from pathlib import Path
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
 def history(data):
     return data / 'history'
-def index(data):
-    return data / 'index'
+def file_index(data):
+    return data / 'files'
+def word_index(data):
+    return data / 'words'

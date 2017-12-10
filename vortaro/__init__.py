@@ -20,9 +20,8 @@ from sys import stdout, stderr, exit
 from pathlib import Path
 from functools import partial
 from shutil import get_terminal_size
-from concurrent.futures import ProcessPoolExecutor
 
-from . import alphabets, dictionaries
+from . import dictionaries
 from .lines import Table
 from .paths import DATA, history
 
@@ -43,7 +42,7 @@ def ls(*languages, data_dir: Path=DATA):
         dictionaries from the passed languages to other languages.
     :param pathlib.path data_dir: Vortaro data directory
     '''
-    i = dictionaries.index(data_dir)
+    i = dictionaries.file_index(data_dir)
     for pair in dictionaries.ls(i, languages or None):
         stdout.write('%s -> %s\n' % pair)
 
@@ -61,7 +60,6 @@ def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
 def lookup(search: Word, limit: int=ROWS-2, *,
            data_dir: Path=DATA,
            width: int=COLUMNS,
-           max_processes: int=4,
            from_langs: [str]=(),
            to_langs: [str]=()):
     '''
@@ -72,11 +70,10 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
-    :param max_processes: Maximum number of processes to use
     :param pathlib.Path data_dir: Vortaro data directory
     '''
     from itertools import product
-    languages = dictionaries.index(data_dir)
+    languages = dictionaries.file_index(data_dir)
 
     not_available = set(from_langs).union(to_langs) - set(languages)
     if not_available:
@@ -92,34 +89,19 @@ def lookup(search: Word, limit: int=ROWS-2, *,
         pairs = product(dictionaries.from_langs(languages), to_langs)
     else:
         pairs = dictionaries.ls(languages, None)
+    pairs = tuple(pairs)
 
     table = Table(search)
-    if max_processes == 1:
-        for from_lang, to_lang in pairs:
-            for d in languages.get(from_lang, {}).get(to_lang):
-                table.extend(_lookup_worker(d, from_lang, to_lang, search))
-    else:
-        with ProcessPoolExecutor(max_processes) as e:
-            fs = []
-            for from_lang, to_lang in pairs:
-                for d in languages.get(from_lang, {}).get(to_lang):
-                    fs.append(e.submit(_lookup_worker, d, from_lang, to_lang, search))
-        for f in fs:
-            table.extend(f.result())
+    words = dictionaries.word_index(data_dir, languages, pairs)
+    for pair in pairs:
+        from_lang, to_lang = pair
+        for xs in words[pair].values():
+            for x in xs:
+                table.add(from_lang, to_lang, x)
     table.sort()
+
     if table:
         with history(data_dir).open('a') as fp:
             fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
     for row in table.render(width, limit):
         stdout.write(row)
-
-def _lookup_worker(d, from_lang, to_lang, search):
-    from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
-    search_trans = from_roman(search)
-
-    out = []
-    for line in dictionaries.FORMATS[d.format].read(d.path):
-        line.reverse = d.reverse
-        if search_trans in line.from_word:
-            out.append((from_lang, to_lang, line))
-    return out
