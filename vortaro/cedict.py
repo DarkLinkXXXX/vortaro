@@ -19,7 +19,6 @@ from pathlib import Path
 from gzip import decompress
 from sys import stderr, exit
 
-from .lines import EagerLine
 from .http import simple_download
 
 LICENSE = (
@@ -46,9 +45,6 @@ def download(directory):
         with file.open('wb') as fp:
             fp.write(body)
 
-def index(_):
-    return 'zh', 'en'
-
 def read(path):
     '''
     Read a dictionary file
@@ -67,32 +63,37 @@ def read(path):
             traditional, simplified, _rest = rawline[:-1].split(' ', 2)
             _pinyin, *englishes, _ = _rest.split('/')
             pinyin = _pinyin[1:-2]
+            ppinyin = _render_pinyin(pinyin)
 
             for english in englishes:
-                yield CEDICTLine(traditional, simplified, pinyin, english)
+                base = {
+                    'from_lang': 'en',
+                    'from_word': english,
+                    'search_phrase': english,
+                })
+                yield dict(**, **{
+                    'to_lang': 'zh',
+                    'to_word': '%s [%s]' % (traditional, ppinyin),
+                })
+                yield dict(**, **{
+                    'to_lang': 'zh_CN',
+                    'to_word': '%s [%s]' % (simplified, ppinyin),
+                })
 
-class CEDICTLine(EagerLine):
-    CHINESE = '%s [%s]'
-    part_of_speech = ''
-
-    def __init__(self, traditional, simplified, pinyin, english):
-        self._traditional = traditional
-        self._simplified = simplified
-        self._pinyin = pinyin
-        self._english = english
-
-    @property
-    def from_word(self):
-        if self.reverse:
-            return self._english
-        else:
-            return self.CHINESE % (self._simplified, self._pinyin)
-    @property
-    def to_word(self):
-        if self.reverse:
-            return self.CHINESE % (self._simplified, _render_pinyin(self._pinyin))
-        else:
-            return self._english
+                base = {
+                    'to_lang': 'en',
+                    'to_word': english,
+                }
+                yield dict(**base, **{
+                    'search_phrase': pinyin,
+                    'from_lang': 'zh',
+                    'from_word': '%s [%s]' % (traditional, ppinyin),
+                })
+                yield dict(**base, **{
+                    'search_phrase': pinyin,
+                    'from_lang': 'zh_CN',
+                    'from_word': '%s [%s]' % (simplified, ppinyin),
+                })
 
 TONES = {
     'a': 'āáǎàa',

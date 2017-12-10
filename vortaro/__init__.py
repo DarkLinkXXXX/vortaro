@@ -35,26 +35,20 @@ def Word(x):
     else:
         return x
 
-def ls(*languages, data_dir: Path=DATA,
+def ls(*from_langs, data_dir: Path=DATA,
        redis_host='localhost', redis_port: int=6379, redis_db: int=0):
     '''
     List available dictionaries.
 
-    :param languages: If you pass any languages, limit the listing to
-        dictionaries from the passed languages to other languages.
+    :param from_langs: If you pass a languages, limit the listing to
+        dictionaries from the passed language to other languages.
     :param pathlib.path data_dir: Vortaro data directory
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    _index(con, data_dir)
-def ls(languages, froms):
-    for from_lang in sorted(froms if froms else from_langs(languages)):
-        for to_lang in sorted(to_langs(languages, from_lang)):
-            yield from_lang, to_lang
-
-
-    i = dictionaries.file_index(data_dir)
-    for pair in dictionaries.ls(i, languages or None):
-        stdout.write('%s -> %s\n' % pair)
+    db.index(con, data_dir)
+    for from_lang in (from_langs or db.get_from_langs(con)):
+        for to_lang in db.get_to_langs(con, from_lang):
+            stdout.write('%s -> %s\n' % (from_lang, to_lang))
 
 def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
     '''
@@ -82,29 +76,29 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param pathlib.Path data_dir: Vortaro data directory
     :param bool force: Force updating of the caches
     '''
-    languages = dictionaries.file_index(data_dir)
+    db.index(con, data_dir)
 
-    not_available = set(from_langs).union(to_langs) - set(languages)
-    if not_available:
-        msg = 'These languages are not available: %s\n'
-        stderr.write(msg % ', '.join(sorted(not_available)))
-        exit(1)
+    from_langs = set(from_langs)
+    to_langs = set(to_langs)
 
-    if from_langs and to_langs:
-        pairs = product(from_langs, to_langs)
-    elif from_langs:
-        pairs = dictionaries.ls(languages, from_langs)
-    elif to_langs:
-        pairs = product(dictionaries.from_langs(languages), to_langs)
-    else:
-        pairs = dictionaries.ls(languages, None)
-    for 
+    from_allowed = set(db.get_from_langs(con))
+    for from_lang in from_langs:
+        if from_lang in from_allowed:
+            to_allowed = db.get_to_langs(con, from_lang)
+            for to_lang in to_langs:
+                if to_lang not in to_allowed:
+                    tpl = 'Language pair not available: %s\n'
+                    stderr.write(tpl % (from_lang, to_lang))
+        else:
+            stderr.write('Language not available: %s\n' % from_lang)
 
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     table = Table(search)
-    for key in db.search(con, search):
-        table.add(db.definition(con, key))
+    for definition in db.search(con, search):
+        if definition['from_lang'] in from_langs and \
+                definition['to_lang'] in to_langs:
+            table.add(definition)
     table.sort()
 
     if table:

@@ -69,8 +69,6 @@ def search(con, x):
             if y in phrase:
                 yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
 
-
-
 def index(con, data):
     '''
     Build the dictionary language index.
@@ -81,46 +79,28 @@ def index(con, data):
         directory = data / name
         if directory.is_dir():
             for file in directory.iterdir():
-                pair = module.index(file)
-                if pair:
-                    f, t = pair
-                    languages[f][t].append(Dictionary(name, file, False))
-                    languages[t][f].append(Dictionary(name, file, True))
-
-    # Convert to normal dict for pickling.
-    i = {k: dict(v) for k,v in languages.items()}
-    for f in i:
-        for t in i[f]:
-            i[f][t].sort(key=lambda d: d.path.stat().st_size, reverse=True)
-    return i
-
-def ls(languages, froms):
-    for from_lang in sorted(froms if froms else from_langs(languages)):
-        for to_lang in sorted(to_langs(languages, from_lang)):
-            yield from_lang, to_lang
-def _find(data):
-    for name, _ in FORMATS.items():
-        directory = data / name
-        if directory.is_dir():
-            for file in directory.iterdir():
-                yield file
+                if not _get_up_to_date(con, file):
+                    for line in module.read(file):
+                        _index_line(line)
+                    _set_up_to_date(con, file)
 
 def _restrict_chars(x):
     return getattr(to_7bit, line['from_lang'], to_roman.identity)(x).lower()
 
 def _index_line(con, line):
-    for phrase in map(_restrict_chars, line.pop('search_phrases')):
-        for character in phrase:
-            con.sadd('characters', character)
-        for fragment in set(_smaller_fragments(phrase)):
-            con.sadd('fragment:%s' % fragment, y)
+    phrase in _restrict_chars(line.pop('search_phrase'))
 
-        xs = (
-            line['from_lang'], line['from_word'],
-            line['to_lang'], line['to_word'],
-        )
-        identifier = hashlib.md5('\n'.join(xs).encode('utf-8')).hexdigest()
-        con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
+    for character in phrase:
+        con.sadd('characters', character)
+    for fragment in set(_smaller_fragments(phrase)):
+        con.sadd('fragment:%s' % fragment, y)
+
+    xs = (
+        line['from_lang'], line['from_word'],
+        line['to_lang'], line['to_word'],
+    )
+    identifier = hashlib.md5('\n'.join(xs).encode('utf-8')).hexdigest()
+    con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
 
 def _bigger_fragments(full_alphabet, search):
     for left_n in range(N-len(search)):
