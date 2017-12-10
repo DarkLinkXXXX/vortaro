@@ -15,17 +15,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
+import webbrowser
+from textwrap import wrap
+from shutil import get_terminal_size
 
+COLUMNS, ROWS = get_terminal_size((80, 20))
 PAIR = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
 
 def download(data_dir):
-    import textwrap
-    import webbrowser
     directions = '''\
 The download page will open in a web browser. Download the dictionary
 of interest (as zipped text), unzip it, and put the text file inside this
 directory: %s/''' % data_dir
-    for line in textwrap.wrap(directions, COLUMNS):
+    for line in wrap(directions, COLUMNS):
         stdout.write(line + '\n')
     stdout.write('\n')
     stdout.write('Press enter when you are ready.\n')

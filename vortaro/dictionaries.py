@@ -24,6 +24,7 @@ from . import paths, dictcc
 
 FORMATS = OrderedDict((
     ('dict.cc', dictcc),
+    ('cc-cedict', cedict),
 ))
 
 Dictionary = namedtuple('Dictionary', ('format', 'path', 'reversed'))

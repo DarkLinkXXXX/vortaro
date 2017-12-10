@@ -45,14 +45,14 @@ def ls(*languages, data_dir: Path=DATA):
     for pair in dictionaries.ls(i, languages or None):
         stdout.write('%s -> %s\n' % pair)
 
-def download(source: dictionaries.FORMATS, data_dir: Path=DATA):
+def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
     '''
     Download a dictionary.
 
     :param source: Dictionary source to download from
     :param pathlib.path data_dir: Vortaro data directory
     '''
-    source.download(data_dir)
+    dictionaries.FORMATS[source].download(data_dir / source)
 
 def lookup(search: Word, limit: int=ROWS-2, *,
            data_dir: Path=DATA,
