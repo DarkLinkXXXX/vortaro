@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import lru_cache
 from pathlib import Path
 from gzip import decompress
 from sys import stderr, exit
@@ -64,11 +65,52 @@ def read(d):
 
             traditional, simplified, _rest = rawline[:-1].split(' ', 2)
             _pinyin, *englishes, _ = _rest.split('/')
-            pinyin = _pinyin[:-2]
+            pinyin = _pinyin[1:-2]
 
+            fmt = '%s [%s]'
             for english in englishes:
-                l = '%s [%s]' % (simplified, pinyin)
-                r = english
                 if d.reversed:
-                    l, r = r, l
-                yield '', l, r
+                    f = english
+                    t = fmt % (simplified, _render_pinyin(pinyin))
+                else:
+                    f = fmt % (simplified, pinyin)
+                    t = english
+                yield '', f, t
+
+TONES = {
+    'a': 'āáǎàa',
+    'e': 'ēéěèe',
+    'i': 'īíǐìi',
+    'o': 'ōóǒòo',
+    'u': 'ūúǔùu',
+} 
+
+def _render_pinyin(xs):
+    return ' '.join(map(_render_syllable, xs.split()))
+    
+@lru_cache(None)
+def _render_syllable(x):
+    if x[-1] not in set('12345'):
+        return x
+
+    syllable = x[:-1]
+    tone = int(x[-1]) - 1
+    if 'ao' in syllable:
+        original = 'ao'
+        replacement = TONES['a'][tone] + 'o'
+    else:
+        for v in 'aeo':
+            if v in syllable:
+                original = v
+                replacement = TONES[v][tone]
+                break
+        else:
+            for vs in ('iu', 'ui'):
+                if vs in syllable:
+                    original = vs
+                    l, r = vs
+                    replacement = l + TONES[r][tone]
+                    break
+            else:
+                return x
+    return syllable.replace(original, replacement)
