@@ -20,6 +20,7 @@ from sys import stdout, stderr, exit
 from pathlib import Path
 from functools import partial
 from shutil import get_terminal_size
+from concurrent.futures import ProcessPoolExecutor
 
 from . import alphabets, dictionaries
 from .lines import Table
@@ -60,6 +61,7 @@ def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
 def lookup(search: Word, limit: int=ROWS-2, *,
            data_dir: Path=DATA,
            width: int=COLUMNS,
+           max_processes: int=4,
            from_langs: [str]=(),
            to_langs: [str]=()):
     '''
@@ -70,6 +72,7 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
+    :param max_processes: Maximum number of processes to use
     :param pathlib.Path data_dir: Vortaro data directory
     '''
     from itertools import product
@@ -91,15 +94,32 @@ def lookup(search: Word, limit: int=ROWS-2, *,
         pairs = dictionaries.ls(languages, None)
 
     table = Table(search)
-    for from_lang, to_lang in pairs:
-        from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
-        search_trans = from_roman(search)
-        for line in dictionaries.read(languages, from_lang, to_lang):
-            if search_trans in line.from_word:
-                table.append(from_lang, to_lang, line)
+    if max_processes == 1:
+        for from_lang, to_lang in pairs:
+            for d in languages.get(from_lang, {}).get(to_lang):
+                table.extend(_lookup_worker(d, from_lang, to_lang, search))
+    else:
+        with ProcessPoolExecutor(max_processes) as e:
+            fs = []
+            for from_lang, to_lang in pairs:
+                for d in languages.get(from_lang, {}).get(to_lang):
+                    fs.append(e.submit(_lookup_worker, d, from_lang, to_lang, search))
+        for f in fs:
+            table.extend(f.result())
     table.sort()
     if table:
         with history(data_dir).open('a') as fp:
             fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
     for row in table.render(width, limit):
         stdout.write(row)
+
+def _lookup_worker(d, from_lang, to_lang, search):
+    from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
+    search_trans = from_roman(search)
+
+    out = []
+    for line in dictionaries.FORMATS[d.format].read(d.path):
+        line.reverse = d.reverse
+        if search_trans in line.from_word:
+            out.append((from_lang, to_lang, line))
+    return out

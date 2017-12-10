@@ -50,8 +50,10 @@ class Table(object):
         self.results = results if results else []
     def __bool__(self):
         return bool(self.results)
-    def append(self, from_lang, to_lang, line):
-        self.results.append((from_lang, to_lang, line))
+    def extend(self, rows):
+        self.results.extend(rows)
+    def append(self, *row):
+        self.results.append(row)
     def sort(self):
         self.results.sort(key=_sort_results)
     def render(self, cols, rows):

@@ -67,18 +67,11 @@ def _index(data):
                     languages[t][f].append(Dictionary(name, file, True))
 
     # Convert to normal dict for pickling.
-    return {k: dict(v) for k,v in languages.items()}
-
-def read(languages, from_lang, to_lang):
-    '''
-    Read the dictionaries for a language pair.
-    '''
-    ds = languages.get(from_lang, {}).get(to_lang)
-    for d in ds:
-        module = FORMATS[d.format]
-        for line in module.read(d.path):
-            line.reverse = d.reverse
-            yield line
+    i = {k: dict(v) for k,v in languages.items()}
+    for f in i:
+        for t in i[f]:
+            i[f][t].sort(key=lambda d: d.path.stat().st_size, reverse=True)
+    return i
 
 def ls(languages, froms):
     for from_lang in sorted(froms if froms else from_langs(languages)):
