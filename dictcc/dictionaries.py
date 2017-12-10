@@ -45,15 +45,21 @@ def read(from_lang, to_lang):
     d = LANGUAGES.get(from_lang, {}).get(to_lang)
     if d:
         with d.path.open() as fp:
+            in_header = True
             for rawline in fp:
-                if not (rawline.startswith('#') or not rawline.strip()):
-                    left_word, right_word, pos = rawline[:-1].split('\t')
-                    if d.reversed:
-                        to_word, _from_word = left_word, right_word
+                if in_header:
+                    if rawline.startswith('#') or not rawline.strip():
+                        continue
                     else:
-                        _from_word, to_word = left_word, right_word
-                    from_word = _from_word.split(' [', 1)[0]
-                    yield Line(pos, from_lang, from_word, to_lang, to_word)
+                        in_header = False
+
+                left_word, right_word, pos = rawline[:-1].split('\t')
+                if d.reversed:
+                    to_word, _from_word = left_word, right_word
+                else:
+                    _from_word, to_word = left_word, right_word
+                from_word = _from_word.split(' [', 1)[0]
+                yield Line(pos, from_lang, from_word, to_lang, to_word)
 
 def ls(froms=None):
     for from_lang in sorted(froms if froms else from_langs()):
