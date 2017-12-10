@@ -110,8 +110,8 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
     table = Table(search)
     for definition in db.search(con, search):
-        if (not from_langs or definition['from_lang'] in from_langs) and \
-                (not to_langs or definition['to_lang'] in to_langs):
+        if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
+                ((not to_langs) or (definition['to_lang'] in to_langs)):
             table.add(definition)
     table.sort()
 

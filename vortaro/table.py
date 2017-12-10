@@ -60,7 +60,7 @@ class Table(object):
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
-        for line in results:
+        for result in results:
             highlighted = result['from_word'].replace(self.search, tpl_cell % self.search)
             formatted = tpl_line % (
                 result['part_of_speech'],
