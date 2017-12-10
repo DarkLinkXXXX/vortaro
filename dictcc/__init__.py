@@ -86,9 +86,10 @@ def lookup(search: Word, limit: int=ROWS-2, *,
 
     table = Table(search)
     for from_lang, to_lang in pairs:
-        to_roman = getattr(alphabets, from_lang, alphabets.identity).to_roman
+        from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
+        search_trans = from_roman(search)
         for line in dictionaries.read(from_lang, to_lang):
-            if search in to_roman(line.from_word):
+            if search_trans in line.from_word:
                 table.append(line)
     table.sort()
     if table:

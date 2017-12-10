@@ -3,20 +3,16 @@ from io import StringIO
 
 class Alphabet(object):
     def __init__(self, alphabet):
-        self.alphabet = alphabet
+        self._from_roman = alphabet
+        self._to_roman = tuple((b,a) for (a,b) in alphabet)
     def to_roman(self, word):
-        return self._convert(False, word)
-    def from_roman(self, x):
-        return self._convert(True, word)
+        return self._convert(self._to_roman, word)
+    def from_roman(self, word):
+        return self._convert(self._from_roman, word)
         
-    def _convert(self, swap, word):
-        if not self.alphabet:
+    def _convert(self, alphabet, word):
+        if not alphabet:
             return word
-
-        if swap:
-            alphabet = tuple((b,a) for (a,b) in self.alphabet)
-        else:
-            alphabet = self.alphabet
 
         mapping = defaultdict(dict)
         for k, v in alphabet:
