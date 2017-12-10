@@ -33,7 +33,7 @@ def build_index(directory):
     for file in directory.iterdir():
         if file.name != INDEX:
             with file.open('rb') as fp:
-                firstline = fp.readline().strip()
+                firstline = fp.readline()[:-1]
             m = re.match(_regex, firstline)
             if m:
                 f, t = (x.decode('utf-8').lower() for x in m.groups())
@@ -47,12 +47,12 @@ def read(from_lang, to_lang):
         with d.path.open() as fp:
             for rawline in fp:
                 if not (rawline.startswith('#') or not rawline.strip()):
-                    left_word, right_word, pos = rawline.rstrip('\n').split('\t')
+                    left_word, right_word, pos = rawline[:-1].split('\t')
                     if d.reversed:
                         to_word, _from_word = left_word, right_word
                     else:
                         _from_word, to_word = left_word, right_word
-                    from_word = _from_word.split('[', 1)[0].rstrip()
+                    from_word = _from_word.split(' [', 1)[0]
                     yield Line(pos, from_lang, from_word, to_lang, to_word)
 
 def ls(froms=None):
