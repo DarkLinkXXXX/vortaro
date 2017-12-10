@@ -1,3 +1,4 @@
+from sys import stderr, exit
 from functools import partial
 from .http import simple_download
 
@@ -11,6 +12,11 @@ LICENSE = (
 
 def download(directory):
     name = URL.split('/')[-1]
-    body = simple_download(URL, LICENSE, directory)
-    with (directory / name).open('wb') as fp:
-        fp.write(body)
+    file = (directory / name)
+    if file.exists():
+        stderr.write('ESPDIC is already downloaded.\n')
+        exit(1)
+    else:
+        body = simple_download(URL, LICENSE, directory)
+        with file.open('wb') as fp:
+            fp.write(body)
