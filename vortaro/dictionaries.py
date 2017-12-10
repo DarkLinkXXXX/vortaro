@@ -1,4 +1,4 @@
-# Tom's dict.cc dictionary reader
+# Tom's vortaro dictionary reader
 # Copyright (C) 2017  Thomas Levine
 #
 # This program is free software: you can redistribute it and/or modify

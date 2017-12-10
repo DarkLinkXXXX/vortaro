@@ -1,4 +1,4 @@
-# Tom's dict.cc dictionary reader
+# Vortaro
 # Copyright (C) 2017  Thomas Levine
 #
 # This program is free software: you can redistribute it and/or modify
@@ -21,4 +21,4 @@ horetu.cli(horetu.Program([
     ls,
     download,
     lookup,
-], name='dict.cc'))
+], name='vortaro'))
