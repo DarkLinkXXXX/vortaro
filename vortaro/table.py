@@ -30,7 +30,7 @@ class Table(object):
         self.results = results if results else []
     def __bool__(self):
         return bool(self.results)
-    def add(self, *row):
+    def add(self, row):
         self.results.append(row)
     def sort(self):
         self.results.sort(key=_sort_results)
@@ -49,7 +49,7 @@ class Table(object):
             results = self.results
 
         widths = [0, 0, 0, 0]
-        for line in results:
+        for result in results:
             row = result['part_of_speech'], \
                 result['from_lang'], result['from_word'], \
                 result['to_lang'], result['to_word']

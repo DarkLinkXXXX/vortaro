@@ -28,9 +28,10 @@ def history(data, search):
         fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
 
 def _get_up_to_date(con, path):
-    file_mtime = path.stat().st_mtime
+    file_mtime = 1 + int(path.stat().st_mtime) # buffer against rounding errors
     db_mtime_str = con.get('dictionaries:%s' % path.absolute())
-    return (not db_mtime_str) or file_mtime > float(db_mtime_str.decode('ascii'))
+    return (not db_mtime_str) or \
+        file_mtime > int(db_mtime_str.decode('ascii').split('.')[0])
 def _set_up_to_date(con, path):
     con.set('dictionaries:%s' % path.absolute(), path.stat().st_mtime)
 
@@ -45,7 +46,7 @@ def _add_pair(con, from_lang, to_lang):
     con.sadd('languages:%s' % to_lang, from_lang)
 
 def search(con, x):
-    full_alphabet = con.sscan_iter('characters')
+    full_alphabet = b''.join(con.sscan_iter('characters')).decode('utf-8')
     y = x.lower()
 
     if set(y).issubset(full_alphabet):
@@ -56,7 +57,7 @@ def search(con, x):
             phrases = con.sunion(tpl % f for f in \
                                  set(_bigger_fragments(full_alphabet, y)))
         for phrase in phrases:
-            if y in phrase:
+            if y in phrase.decode('utf-8'):
                 yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
 
 def index(con, formats, data, force=False):
@@ -70,6 +71,7 @@ def index(con, formats, data, force=False):
         if directory.is_dir():
             for file in directory.iterdir():
                 if force or not _get_up_to_date(con, file):
+                    print(8)
                     for line in module.read(file):
                         _index_line(con, line)
                     _set_up_to_date(con, file)
