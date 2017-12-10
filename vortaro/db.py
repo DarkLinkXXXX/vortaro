@@ -18,11 +18,12 @@ import datetime, pickle
 from os import makedirs
 from sys import stderr
 from hashlib import md5
+from collections import defaultdict
 
 from . import transliterate
 
-LOG_INTERVAL = 100
-N = 5 # Fragment size
+LOG_INTERVAL = 10000
+N = 3 # Fragment size
 
 def history(data, search):
     with (data / 'history').open('a') as fp:
@@ -80,41 +81,49 @@ def index(con, formats, data, force=False):
     files = 0
     definitions = 0
     pairs = set()
+    fragments = defaultdict(list)
     for name, module in formats.items():
         directory = data / name
-        if directory.is_dir():
-            for file in directory.iterdir():
-                if _get_out_of_date(con, file):
-                    files += 1
-                    for line in module.read(file):
-                        definitions += 1
-                        _index_line(con, line)
-                        pairs.add((line['from_lang'], line['to_lang']))
-                        if definitions % LOG_INTERVAL == 0:
-                            msg = '\rIndexed %d definitions from %d files (Skipped %d already-indexed files)'
-                            stderr.write(msg % (definitions, files, skip))
-                            for pair in pairs:
-                                _add_pair(con, *pair)
-                            pairs.clear()
-                    _set_up_to_date(con, file)
-                else:
-                    skip += 1
+        if not directory.is_dir():
+            continue
+        for file in directory.iterdir():
+            if not _get_out_of_date(con, file):
+                continue
+            files += 1
+            for line in module.read(file):
+                phrase = _restrict_chars(line['from_lang'], line.pop('search_phrase'))
+                for fragment in set(_index_fragments(phrase)):
+                    fragments[fragment].append(phrase)
+                xs = (
+                    line['from_lang'], line['from_word'],
+                    line['to_lang'], line['to_word'],
+                )
+                identifier = md5('\n'.join(xs).encode('utf-8')).hexdigest()
+                pairs.add((line['from_lang'], line['to_lang']))
+                con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
 
-def _restrict_chars(x):
-    return getattr(transliterate, x, transliterate.identity).to_roman(x).lower()
+                definitions += 1
+                if definitions % LOG_INTERVAL == 0:
+                    for fragment, phrases in fragments.items():
+                        def scored():
+                            for phrase in set(phrases):
+                                yield len(phrase) 
+                                yield phrase
+                        con.zadd('fragment:%s' % fragment, *scored())
+                    
+                    for pair in pairs:
+                        _add_pair(con, *pair)
+                    pairs.clear()
 
-def _index_line(con, line):
-    phrase = _restrict_chars(line.pop('search_phrase'))
+                    msg = '\rIndexed %d definitions from %d files (Skipped %d already-indexed files)'
+                    stderr.write(msg % (definitions, files, skip))
+                    
+            _set_up_to_date(con, file)
+        else:
+            skip += 1
 
-    for fragment in set(_index_fragments(phrase)):
-        con.zadd('fragment:%s' % fragment, len(phrase), phrase)
-
-    xs = (
-        line['from_lang'], line['from_word'],
-        line['to_lang'], line['to_word'],
-    )
-    identifier = md5('\n'.join(xs).encode('utf-8')).hexdigest()
-    con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
+def _restrict_chars(lang, text):
+    return getattr(transliterate, lang, transliterate.identity).to_roman(text).lower()
 
 def _search_fragments(search):
     if len(search) <= N:
