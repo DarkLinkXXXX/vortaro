@@ -14,6 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from . import transliterate
+
+UNDERLINE = '\033[4m'
+NORMAL = '\033[0m'
+ADJ = 2
+
 def _sort_results(result):
     return (
         len(result['from_word']),
@@ -40,28 +46,26 @@ class Table(object):
 
             python3 -m dictcc lookup -from sv är 10
         '''
-        tpl_cell = '\033[4m%s\033[0m'
-        adj = len(tpl_cell) - 2
-
         if rows:
             results = self.results[:rows]
         else:
             results = self.results
 
-        widths = _widths(results, adj)
+        widths = _widths(results)
 
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
         for result in results:
-            highlighted = result['from_word'].replace(self.search, tpl_cell % self.search)
             formatted = tpl_line % (
                 result['part_of_speech'],
-                result['from_lang'], highlighted,
-                result['to_lang'], result['to_word'],
+                result['from_lang'],
+                highlight(result['from_lang'], result['from_word'], self.search),
+                result['to_lang'],
+                result['to_word'],
             )
             if cols:
-                yield formatted[:(cols+adj)] + '\n'
+                yield formatted[:(cols+ADJ)] + '\n'
             else:
                 yield formatted + '\n'
 
@@ -69,7 +73,27 @@ class Table(object):
         return 'Table(search=%s, widths=%s, results=%s)' % \
             tuple(map(repr, (self.search, self.results)))
 
-def _widths(results, adj):
+def highlight(lang, big_foreign, small_roman):
+    a, b, c = _highlight(lang, big_foreign, small_roman)
+    return ''.join((a, UNDERLINE, b, NORMAL, c))
+def _highlight(lang, big_foreign, small_roman):
+    alphabet = getattr(transliterate, lang, transliterate.identity)
+    big_roman = alphabet.to_roman(big_foreign)
+
+    left = big_roman.lower().index(small_roman.lower())
+    right = left + len(small_roman)
+    
+    y = (
+        alphabet.from_roman(big_roman[:left]),
+        alphabet.from_roman(big_roman[left:right]),
+        alphabet.from_roman(big_roman[right:]),
+    )
+    if ''.join(y) == big_foreign:
+        return y
+    else:
+        return (big_foreign, '', '')
+
+def _widths(results):
     widths = [0, 0, 0, 0]
     for result in results:
         row = result['part_of_speech'], \
@@ -77,5 +101,5 @@ def _widths(results, adj):
             result['to_lang'], result['to_word']
         for i, cell in enumerate(row[:-1]):
             widths[i] = max(widths[i], len(cell))
-    widths[2] += adj
+    widths[2] += ADJ
     return widths

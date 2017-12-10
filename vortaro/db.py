@@ -19,7 +19,7 @@ from os import makedirs
 from hashlib import md5
 from itertools import product, permutations, combinations
 
-from . import to_roman
+from . import transliterate
 
 N = 3 # Fragment size
 
@@ -76,7 +76,7 @@ def index(con, formats, data, force=False):
                     _set_up_to_date(con, file)
 
 def _restrict_chars(x):
-    return getattr(to_roman, x, to_roman.identity)(x).lower()
+    return getattr(transliterate, x, transliterate.identity).to_roman(x).lower()
 
 def _index_line(con, line):
     phrase = _restrict_chars(line.pop('search_phrase'))

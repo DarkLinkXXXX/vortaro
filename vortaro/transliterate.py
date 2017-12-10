@@ -17,8 +17,19 @@
 from collections import defaultdict
 from io import StringIO
 
-def Roman(alphabet):
-    def to_roman(word):
+class Alphabet(object):
+    def __init__(self, alphabet):
+        self._to_roman = alphabet
+        self._from_roman = tuple((v,k) for (k,v) in alphabet)
+    def __repr__(self):
+        return 'Alphabet(%s)' % repr(self._to_roman)
+    def to_roman(self, word):
+        return self._convert(self._to_roman, word)
+    def from_roman(self, word):
+        return self._convert(self._from_roman, word)
+
+    @staticmethod
+    def _convert(alphabet, word):
         mapping = defaultdict(dict)
         for k, v in alphabet:
             if not 1 <= len(k) <= 2:
@@ -59,10 +70,9 @@ def Roman(alphabet):
                 else:
                     write(char, mapping[char.lower()][''])
         return output.getvalue()
-    return to_roman
 
-identity = lambda x: x
-sr = Roman((
+identity = Alphabet(())
+sr = Alphabet((
     ('а', 'a'),
     ('б', 'b'),
     ('ц', 'c'),
