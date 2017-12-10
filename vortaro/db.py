@@ -54,7 +54,12 @@ def search(con, x):
     if set(root).issubset(transliterate.full_alphabet):
         tpl = 'fragment:%s'
         keys = tuple(tpl % f for f in set(_search_fragments(root)))
-        for phrase in con.sinter(keys):
+        if len(keys) == 1:
+            key = tuple(keys)[0]
+        else:
+            key = 'tmp:phrases'
+            con.zinterstore(key, keys, 'min')
+        for phrase, _ in con.zscan_iter(key):
             if root in phrase.decode('utf-8'):
                 yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
 
@@ -102,7 +107,7 @@ def _index_line(con, line):
     phrase = _restrict_chars(line.pop('search_phrase'))
 
     for fragment in set(_index_fragments(phrase)):
-        con.sadd('fragment:%s' % fragment, phrase)
+        con.zadd('fragment:%s' % fragment, len(phrase), phrase)
 
     xs = (
         line['from_lang'], line['from_word'],
@@ -115,8 +120,8 @@ def _search_fragments(search):
     if len(search) <= N:
         yield search
     else:
-        for i in range(len(search)-N):
-            yield phrase[i:i+N]
+        for i in range(1+len(search)-N):
+            yield search[i:i+N]
 
 def _index_fragments(phrase):
     for i in range(len(phrase)):

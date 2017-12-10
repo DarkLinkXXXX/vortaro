@@ -133,6 +133,8 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
                 ((not to_langs) or (definition['to_lang'] in to_langs)):
             table.add(definition)
+        if len(table) >= limit:
+            break
     table.sort()
 
     if table:

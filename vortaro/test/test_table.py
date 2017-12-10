@@ -13,7 +13,7 @@ def test_highlight(lang, big_foreign, small_roman, highlighted):
     assert table._highlight(lang, big_foreign, small_roman) == highlighted
 
 WIDTHS = (
-    ([4, 2, 10, 2], (
+    ([4, 2, 16, 2], (
          {
              'part_of_speech': 'noun',
              'from_lang': 'en', 'from_word': 'square',

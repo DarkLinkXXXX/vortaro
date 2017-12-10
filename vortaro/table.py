@@ -18,7 +18,6 @@ from . import transliterate
 
 UNDERLINE = '\033[4m'
 NORMAL = '\033[0m'
-ADJ = 2
 
 def _sort_results(result):
     return (
@@ -40,6 +39,8 @@ class Table(object):
         if 'part_of_speech' not in row:
             row['part_of_speech'] = ''
         self.results.append(row)
+    def __len__(self):
+        return len(self.results)
     def sort(self):
         self.results.sort(key=_sort_results)
     def render(self, cols, rows):
@@ -53,7 +54,6 @@ class Table(object):
         else:
             results = self.results
 
-        print(results)
         widths = _widths(results)
 
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
@@ -67,8 +67,8 @@ class Table(object):
                 result['to_lang'],
                 result['to_word'],
             )
-            if cols:
-                yield formatted[:(cols+ADJ)] + '\n'
+            if cols and UNDERLINE in formatted and NORMAL in formatted:
+                yield formatted[:(cols+2)] + '\n'
             else:
                 yield formatted + '\n'
 
@@ -104,5 +104,5 @@ def _widths(results):
             result['to_lang'], result['to_word']
         for i, cell in enumerate(row[:-1]):
             widths[i] = max(widths[i], len(cell))
-    widths[2] += ADJ
+    widths[2] += len(UNDERLINE) + len(NORMAL)
     return widths
