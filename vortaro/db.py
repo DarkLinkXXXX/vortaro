@@ -120,5 +120,5 @@ def _search_fragments(search):
 
 def _index_fragments(phrase):
     for i in range(len(phrase)):
-        for j in range(N, i):
-            yield phrase[i:j]
+        for j in range(1, 1+N):
+            yield phrase[i:i+j]
