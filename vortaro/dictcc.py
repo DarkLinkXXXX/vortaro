@@ -43,7 +43,7 @@ def index(file):
     '''
     with file.open('rb') as fp:
         firstline = fp.readline()[:-1]
-    m = re.match(_regex, firstline)
+    m = PAIR.match(firstline)
     if m:
         return tuple(x.decode('utf-8').lower() for x in m.groups())
 
