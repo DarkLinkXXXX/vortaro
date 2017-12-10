@@ -19,7 +19,6 @@ import pickle
 from sys import stdout
 from collections import defaultdict, namedtuple, OrderedDict
 
-from .lines import Line
 from . import paths, dictcc, cedict, espdic
 
 FORMATS = OrderedDict((
@@ -77,9 +76,9 @@ def read(languages, from_lang, to_lang):
     ds = languages.get(from_lang, {}).get(to_lang)
     for d in ds:
         module = FORMATS[d.format]
-        for pos, from_word, to_word in module.read(d):
-            # Packing as a Line is slow. Maybe change this.
-            yield Line(pos, from_lang, from_word, to_lang, to_word)
+        for line in module.read(d.path):
+            line.reversed = d.reversed
+            yield line
 
 def ls(languages, froms):
     for from_lang in sorted(froms if froms else from_langs(languages)):

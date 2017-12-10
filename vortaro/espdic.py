@@ -28,13 +28,10 @@ def read(d):
     '''
     Read a dictionary file
 
-    :param dictionaries.Dictionary d: Dictionary
+    :param pathlib.Path: Dictionary file
     '''
-    with d.path.open() as fp:
+    with path.open() as fp:
         next(fp)
         for rawline in fp:
             l, r = rawline[:-1].split(' : ')
-            if d.reversed:
-                l, r = r, l
             yield '', l, r
-

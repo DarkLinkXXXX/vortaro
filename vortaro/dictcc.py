@@ -19,6 +19,8 @@ import webbrowser
 from textwrap import wrap
 from shutil import get_terminal_size
 
+from .lines import EagerLine
+
 COLUMNS, ROWS = get_terminal_size((80, 20))
 PAIR = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
 
@@ -45,13 +47,13 @@ def index(file):
     if m:
         return tuple(x.decode('utf-8').lower() for x in m.groups())
 
-def read(d):
+def read(path):
     '''
     Read a dictionary file
 
     :param dictionaries.Dictionary d: Dictionary
     '''
-    with d.path.open() as fp:
+    with path.open() as fp:
         in_header = True
         for rawline in fp:
             if in_header:
@@ -59,12 +61,11 @@ def read(d):
                     continue
                 else:
                     in_header = False
-
             left_word, right_word, pos = rawline[:-1].split('\t')
-            if d.reversed:
-                to_word, _from_word = left_word, right_word
-            else:
-                _from_word, to_word = left_word, right_word
-            from_word = _from_word.split(' [', 1)[0]
-            yield pos, from_word, to_word
+            yield DictCCLine(pos, left_word, right_word)
 
+class DictCCLine(EagerLine):
+    @property
+    def from_word(self):
+        y = super(DictCCLine, self).from_word
+        return y.split(' [', 1)[0]

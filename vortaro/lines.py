@@ -14,9 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from collections import namedtuple
+class EagerLine(object):
+    def __init__(self, from_word, to_word, part_of_speech=None):
+        self.part_of_speech = part_of_speech
+        self._from_word = from_word
+        self._to_word = to_word
 
-Line = namedtuple('Line', ('part_of_speech', 'from_lang', 'from_word', 'to_lang', 'to_word'))
+    @property
+    def to_word(self):
+        if self.reverse:
+            return self._from_word
+        else:
+            return self._to_word
+    @property
+    def from_word(self):
+        if self.reverse:
+            return self._to_word
+        else:
+            return self._from_word
 
 class Table(object):
     def __init__(self, search, lines=None):

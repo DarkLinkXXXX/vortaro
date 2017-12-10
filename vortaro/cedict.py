@@ -19,6 +19,7 @@ from pathlib import Path
 from gzip import decompress
 from sys import stderr, exit
 
+from .lines import EagerLine
 from .http import simple_download
 
 LICENSE = (
@@ -48,13 +49,13 @@ def download(directory):
 def index(_):
     return 'zh', 'en'
 
-def read(d):
+def read(path):
     '''
     Read a dictionary file
 
-    :param dictionaries.Dictionary d: Dictionary
+    :param pathlib.Path: Dictionary file
     '''
-    with d.path.open() as fp:
+    with path.open() as fp:
         in_header = True
         for rawline in fp:
             if in_header:
@@ -67,15 +68,21 @@ def read(d):
             _pinyin, *englishes, _ = _rest.split('/')
             pinyin = _pinyin[1:-2]
 
-            fmt = '%s [%s]'
             for english in englishes:
-                if d.reversed:
-                    f = english
-                    t = fmt % (simplified, _render_pinyin(pinyin))
-                else:
-                    f = fmt % (simplified, pinyin)
-                    t = english
-                yield '', f, t
+                yield english, CHINESE % (simplified, pinyin)
+
+CHINESE = '%s [%s]'
+class CEDICTLine(EagerLine):
+    @property
+    def to_word(self):
+        x = super(CEDICTLine, self).to_word
+        if self.reversed:
+            m = re.match(r'([.+]) \[[a-z1-5 ]+\]$', x)
+            simplified, pinyin = m.groups()
+            return CHINESE % (simplified, _render_pinyin(pinyin))
+        else:
+            return x
+
 
 TONES = {
     'a': 'āáǎàa',
