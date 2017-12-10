@@ -22,6 +22,8 @@ class Table(object):
     def __init__(self, search, lines=None):
         self.search = search
         self.lines = lines if lines else []
+    def __bool__(self):
+        return bool(self.lines)
     def append(self, line):
         self.lines.append(line)
     def sort(self):

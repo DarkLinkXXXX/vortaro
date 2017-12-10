@@ -14,13 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import datetime
+from os import environ
 from sys import stdout
+from pathlib import Path
 from shutil import get_terminal_size
 
 from . import dictionaries
 from .lines import Line, Table
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
+HISTORY = Path(environ.get('HOME', '.')) / '.dict.cc_history'
+
+def Word(x):
+    illegal = set('\t\n\r')
+    if set(x).issubset(illegal):
+        raise ValueError('Word contains forbidden characters.')
+    else:
+        return x
 
 def ls(*languages):
     '''
@@ -49,7 +60,7 @@ directory: ~/.dict.cc/'''
     input()
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
-def lookup(search, limit: int=ROWS-2, *,
+def lookup(search: Word, limit: int=ROWS-2, *,
            width: int=COLUMNS,
            from_langs: [tuple(dictionaries.LANGUAGES)]=(),
            to_langs: [tuple(dictionaries.LANGUAGES)]=()):
@@ -90,5 +101,8 @@ def lookup(search, limit: int=ROWS-2, *,
                         if search in from_word:
                             table.append(line)
     table.sort()
+    if table:
+        with HISTORY.open('a') as fp:
+            fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
     for row in table.render(width, limit):
         stdout.write(row)

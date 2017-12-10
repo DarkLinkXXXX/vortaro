@@ -35,11 +35,12 @@ Run these to see help. ::
 
 Shell integration
 -----------------
-Consider setting up an alias. Here's one for tcsh. ::
+Consider setting up an alias and tab completion. Here is what I use in tcsh. ::
 
     alias dict.cc python3 -m dictcc lookup
+    complete dict.cc 'C%*%`cut -f 1 ~/.dict.cc_history`%'
 
-Here's one for sh. ::
+Here an alias for sh. ::
 
     alias dict.cc='python3 -m dictcc lookup'
 
