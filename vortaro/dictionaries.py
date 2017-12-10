@@ -20,7 +20,7 @@ from sys import stdout
 from collections import defaultdict, namedtuple, OrderedDict
 
 from . import (
-    paths, alphabets,
+    db, alphabets,
     dictcc, cedict, espdic,
 ) 
 
@@ -32,35 +32,24 @@ FORMATS = OrderedDict((
 
 Dictionary = namedtuple('Dictionary', ('format', 'path', 'reverse'))
 
-def word_index(data, languages, pairs):
-    file = paths.word_index(data)
-    if file.exists():
-        with file.open('rb') as fp:
-            i = pickle.load(fp)
-    else:
-        i = {}
-
+def update_word_index(i, languages, pairs):
     change = False
     for pair in pairs:
         from_lang, to_lang = pair
+        if pair not in i:
+            i[pair] = {}
+        print(pair)
         for d in languages.get(from_lang, {}).get(to_lang):
-            if pair not in i:
-                i[pair] = {}
-                if d.path not in i:
-                    i[pair][d.path] = []
-                    change = True
-                    from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
+            if d.path not in i:
+                i[pair][d.path] = []
+                change = True
+                from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
 
-                    for line in FORMATS[d.format].read(d.path):
-                        line.reverse = d.reverse
-                        line.search_trans = from_roman(line.from_word)
-                        i[pair][d.path].append(line)
-
-    if change:
-        with file.open('wb') as fp:
-            pickle.dump(i, fp)
-
-    return i
+                for line in FORMATS[d.format].read(d.path):
+                    line.reverse = d.reverse
+                    search_trans = from_roman(line.from_word).encode('utf-8')
+                    i[pair][d.path].append((search_trans, pickle.dumps(line)))
+    return change
 
 def file_index(data):
     '''
@@ -68,7 +57,7 @@ def file_index(data):
 
     :param pathlib.Path data: Path to the data directory
     '''
-    i = paths.file_index(data)
+    i = db.file_index(data)
     mtimes = tuple(map(_mtime, _find(data)))
     if mtimes:
         if (not i.exists()) or (max(mtimes) > _mtime(i)):

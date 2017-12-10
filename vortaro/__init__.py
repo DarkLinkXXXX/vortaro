@@ -14,18 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import datetime
-from os import makedirs
+from os import environ, makedirs
 from sys import stdout, stderr, exit
 from pathlib import Path
+from itertools import product
 from functools import partial
 from shutil import get_terminal_size
 
 from . import dictionaries
 from .lines import Table
-from .paths import DATA, history
+from .db import DATA, history
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
+DATA = Path(environ.get('HOME', '.')) / '.vortaro'
 
 def Word(x):
     illegal = set('\t\n\r')
@@ -57,11 +58,10 @@ def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
     makedirs(subdir, exist_ok=True)
     dictionaries.FORMATS[source].download(subdir)
 
-def lookup(search: Word, limit: int=ROWS-2, *,
-           data_dir: Path=DATA,
-           width: int=COLUMNS,
-           from_langs: [str]=(),
-           to_langs: [str]=()):
+def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+           force=False, data_dir: Path=DATA,
+           redis_host='localhost', redis_port: int=6379, redis_db: int=0,
+           from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
 
@@ -71,8 +71,8 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
+    :param bool force: Force updating of the caches
     '''
-    from itertools import product
     languages = dictionaries.file_index(data_dir)
 
     not_available = set(from_langs).union(to_langs) - set(languages)
@@ -91,18 +91,14 @@ def lookup(search: Word, limit: int=ROWS-2, *,
         pairs = dictionaries.ls(languages, None)
     pairs = tuple(pairs)
 
+    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+
     table = Table(search)
-    words = dictionaries.word_index(data_dir, languages, pairs)
-    for pair in pairs:
-        from_lang, to_lang = pair
-        for lines in words[pair].values():
-            for line in lines:
-                if search in line.search_trans:
-                    table.add(from_lang, to_lang, line)
+    for key in db.search(con, search):
+        table.add(db.definition(con, key))
     table.sort()
 
     if table:
-        with history(data_dir).open('a') as fp:
-            fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
+        db.history(data_dir, search)
     for row in table.render(width, limit):
         stdout.write(row)

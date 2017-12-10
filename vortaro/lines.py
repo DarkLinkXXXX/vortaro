@@ -14,37 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-class EagerLine(object):
-    def __init__(self, from_word, to_word, part_of_speech=''):
-        self._from_word = from_word
-        self._to_word = to_word
-        self.part_of_speech = part_of_speech
-
-    def __str__(self):
-        return '%s -> %s' % (self.from_word, self.to_word)
-
-    @property
-    def to_word(self):
-        if self.reverse:
-            return self._from_word
-        else:
-            return self._to_word
-    @property
-    def from_word(self):
-        if self.reverse:
-            return self._to_word
-        else:
-            return self._from_word
-
-def _sort_results(result):
-    from_lang, to_lang, line = result
+def sort_results(result):
     return (
-        len(line.from_word),
-        line.part_of_speech,
-        from_lang,
-        line.from_word,
-        to_lang,
-        line.to_word,
+        len(result['from_word']),
+        result['part_of_speech'],
+        result['from_lang'],
+        result['from_word'],
+        result['to_lang'],
+        result['to_word'],
     )
 
 class Table(object):
@@ -72,8 +49,10 @@ class Table(object):
             results = self.results
 
         widths = [0, 0, 0, 0]
-        for from_lang, to_lang, line in results:
-            row = line.part_of_speech, from_lang, line.from_word, to_lang, line.to_word
+        for line in results:
+            row = result['part_of_speech'], \
+                result['from_lang'], result['from_word'], \
+                result['to_lang'], result['to_word']
             for i, cell in enumerate(row[:-1]):
                 widths[i] = max(widths[i], len(cell))
         widths[2] += adj
@@ -81,12 +60,12 @@ class Table(object):
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
-        for from_lang, to_lang, line in results:
-            highlighted = line.from_word.replace(self.search, tpl_cell % self.search)
+        for line in results:
+            highlighted = result['from_word'].replace(self.search, tpl_cell % self.search)
             formatted = tpl_line % (
-                line.part_of_speech,
-                from_lang, highlighted,
-                to_lang, line.to_word,
+                result['part_of_speech'],
+                result['from_lang'], highlighted,
+                result['to_lang'], result['to_word'],
             )
             if cols:
                 yield formatted[:(cols+adj)] + '\n'
