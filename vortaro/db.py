@@ -18,18 +18,8 @@ import datetime, pickle
 from os import makedirs
 from hashlib import md5
 from itertools import permutations, combinations
-from collections import OrderedDict
 
-from . import (
-    alphabets,
-    dictcc, cedict, espdic,
-) 
-
-FORMATS = OrderedDict((
-    ('dict.cc', dictcc),
-    ('cc-cedict', cedict),
-    ('espdic', espdic),
-))
+from . import to_roman
 
 N = 3 # Fragment size
 
@@ -39,8 +29,8 @@ def history(data, search):
 
 def _get_up_to_date(con, path):
     file_mtime = path.stat().st_mtime
-    db_mtime_str = con.get('dictionaries:%s' % path.absolute()).decode('ascii')
-    return (not db_mtime_str) or file_mtime > float(db_mtime_str):
+    db_mtime_str = con.get('dictionaries:%s' % path.absolute())
+    return (not db_mtime_str) or file_mtime > float(db_mtime_str.decode('ascii'))
 def _set_up_to_date(con, path):
     con.set('dictionaries:%s' % path.absolute(), path.stat().st_mtime)
 
@@ -69,37 +59,37 @@ def search(con, x):
             if y in phrase:
                 yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
 
-def index(con, data):
+def index(con, formats, data, force=False):
     '''
     Build the dictionary language index.
 
     :param pathlib.Path data: Path to the data directory
     '''
-    for name, module in FORMATS.items():
+    for name, module in formats.items():
         directory = data / name
         if directory.is_dir():
             for file in directory.iterdir():
-                if not _get_up_to_date(con, file):
+                if force or not _get_up_to_date(con, file):
                     for line in module.read(file):
-                        _index_line(line)
+                        _index_line(con, line)
                     _set_up_to_date(con, file)
 
 def _restrict_chars(x):
-    return getattr(to_7bit, line['from_lang'], to_roman.identity)(x).lower()
+    return getattr(to_roman, x, to_roman.identity)(x).lower()
 
 def _index_line(con, line):
-    phrase in _restrict_chars(line.pop('search_phrase'))
+    phrase = _restrict_chars(line.pop('search_phrase'))
 
     for character in phrase:
         con.sadd('characters', character)
     for fragment in set(_smaller_fragments(phrase)):
-        con.sadd('fragment:%s' % fragment, y)
+        con.sadd('fragment:%s' % fragment, phrase)
 
     xs = (
         line['from_lang'], line['from_word'],
         line['to_lang'], line['to_word'],
     )
-    identifier = hashlib.md5('\n'.join(xs).encode('utf-8')).hexdigest()
+    identifier = md5('\n'.join(xs).encode('utf-8')).hexdigest()
     con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
 
 def _bigger_fragments(full_alphabet, search):
@@ -107,7 +97,7 @@ def _bigger_fragments(full_alphabet, search):
         right_n = N - left_n
         left_options = permutations(combinations(full_alphabet, left_n))
         right_options = permutations(combinations(full_alphabet, right_n))
-        for prefix, suffix in product(left_options, right_options)
+        for prefix, suffix in product(left_options, right_options):
             yield prefix + search + suffix
 
 def _smaller_fragments(phrase):
@@ -116,6 +106,6 @@ def _smaller_fragments(phrase):
     else:
         columns = []
         for i in range(len(phrase)):
-            columns.append(phrase[i:i+1-n])
+            columns.append(phrase[i:i+1-N])
         for letters in zip(*columns):
             yield ''.join(letters)

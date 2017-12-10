@@ -20,8 +20,6 @@ from textwrap import wrap
 from functools import lru_cache
 from shutil import get_terminal_size
 
-from .lines import EagerLine
-
 COLUMNS, ROWS = get_terminal_size((80, 20))
 PAIR = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
 
@@ -38,17 +36,12 @@ directory: %s/''' % data_dir
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
 def read(path):
-    '''
-    Read a dictionary file
-
-    :param dictionaries.Dictionary d: Dictionary
-    '''
-    with file.open('rb') as fp:
+    with path.open('rb') as fp:
         firstline = fp.readline()[:-1]
 
     m = PAIR.match(firstline)
     if m:
-        left_lang, right_lang = m.groups()
+        left_lang, right_lang = (g.decode('utf-8').lower() for g in m.groups())
     else:
         raise StopIteration
 

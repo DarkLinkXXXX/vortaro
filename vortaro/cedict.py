@@ -70,12 +70,12 @@ def read(path):
                     'from_lang': 'en',
                     'from_word': english,
                     'search_phrase': english,
-                })
-                yield dict(**, **{
+                }
+                yield dict(**base, **{
                     'to_lang': 'zh',
                     'to_word': '%s [%s]' % (traditional, ppinyin),
                 })
-                yield dict(**, **{
+                yield dict(**base, **{
                     'to_lang': 'zh_CN',
                     'to_word': '%s [%s]' % (simplified, ppinyin),
                 })

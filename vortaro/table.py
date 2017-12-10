@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-def sort_results(result):
+def _sort_results(result):
     return (
         len(result['from_word']),
         result['part_of_speech'],

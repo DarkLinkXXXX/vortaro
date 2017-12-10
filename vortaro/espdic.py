@@ -18,7 +18,6 @@ from sys import stderr, exit
 from functools import lru_cache
 
 from .http import simple_download
-from .lines import EagerLine
 
 URL = 'http://www.denisowski.org/Esperanto/ESPDIC/espdic.txt'
 FILENAME = URL.split('/')[-1]

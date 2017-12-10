@@ -19,11 +19,22 @@ from sys import stdout, stderr, exit
 from pathlib import Path
 from itertools import product
 from functools import partial
+from collections import OrderedDict
 from shutil import get_terminal_size
 
-from . import dictionaries
-from .lines import Table
-from .db import DATA, history
+from redis import StrictRedis
+
+from .table import Table
+from . import (
+    db,
+    dictcc, cedict, espdic
+)
+FORMATS = OrderedDict((
+    ('dict.cc', dictcc),
+    ('cc-cedict', cedict),
+    ('espdic', espdic),
+))
+DB = 7 # Redis DB number
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
@@ -35,22 +46,23 @@ def Word(x):
     else:
         return x
 
-def ls(*from_langs, data_dir: Path=DATA,
-       redis_host='localhost', redis_port: int=6379, redis_db: int=0):
+def ls(*from_langs, data_dir: Path=DATA, index=False,
+       redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
     '''
     List available dictionaries.
 
     :param from_langs: If you pass a languages, limit the listing to
         dictionaries from the passed language to other languages.
     :param pathlib.path data_dir: Vortaro data directory
+    :param bool index: Force updating of the index
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    db.index(con, data_dir)
+    db.index(con, FORMATS, data_dir, force=index)
     for from_lang in (from_langs or db.get_from_langs(con)):
         for to_lang in db.get_to_langs(con, from_lang):
             stdout.write('%s -> %s\n' % (from_lang, to_lang))
 
-def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
+def download(source: tuple(FORMATS), data_dir: Path=DATA):
     '''
     Download a dictionary.
 
@@ -59,11 +71,11 @@ def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
     '''
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
-    dictionaries.FORMATS[source].download(subdir)
+    FORMATS[source].download(subdir)
 
 def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
-           force=False, data_dir: Path=DATA,
-           redis_host='localhost', redis_port: int=6379, redis_db: int=0,
+           index=False, data_dir: Path=DATA,
+           redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
            from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
@@ -74,9 +86,10 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
-    :param bool force: Force updating of the caches
+    :param bool index: Force updating of the index
     '''
-    db.index(con, data_dir)
+    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    db.index(con, FORMATS, data_dir, force=index)
 
     from_langs = set(from_langs)
     to_langs = set(to_langs)
