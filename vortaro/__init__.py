@@ -35,7 +35,8 @@ def Word(x):
     else:
         return x
 
-def ls(*languages, data_dir: Path=DATA):
+def ls(*languages, data_dir: Path=DATA,
+       redis_host='localhost', redis_port: int=6379, redis_db: int=0):
     '''
     List available dictionaries.
 
@@ -43,6 +44,14 @@ def ls(*languages, data_dir: Path=DATA):
         dictionaries from the passed languages to other languages.
     :param pathlib.path data_dir: Vortaro data directory
     '''
+    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    _index(con, data_dir)
+def ls(languages, froms):
+    for from_lang in sorted(froms if froms else from_langs(languages)):
+        for to_lang in sorted(to_langs(languages, from_lang)):
+            yield from_lang, to_lang
+
+
     i = dictionaries.file_index(data_dir)
     for pair in dictionaries.ls(i, languages or None):
         stdout.write('%s -> %s\n' % pair)
@@ -89,7 +98,7 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         pairs = product(dictionaries.from_langs(languages), to_langs)
     else:
         pairs = dictionaries.ls(languages, None)
-    pairs = tuple(pairs)
+    for 
 
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 

@@ -14,16 +14,45 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import pickle
-import datetime
+import datetime, pickle
 from os import makedirs
-from collections import Mapping # , MutableSequence
+from hashlib import md5
+from itertools import permutations, combinations
+from collections import OrderedDict
+
+from . import (
+    alphabets,
+    dictcc, cedict, espdic,
+) 
+
+FORMATS = OrderedDict((
+    ('dict.cc', dictcc),
+    ('cc-cedict', cedict),
+    ('espdic', espdic),
+))
 
 N = 3 # Fragment size
 
 def history(data, search):
     with (data / 'history').open('a') as fp:
         fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
+
+def _get_up_to_date(con, path):
+    file_mtime = path.stat().st_mtime
+    db_mtime_str = con.get('dictionaries:%s' % path.absolute()).decode('ascii')
+    return (not db_mtime_str) or file_mtime > float(db_mtime_str):
+def _set_up_to_date(con, path):
+    con.set('dictionaries:%s' % path.absolute(), path.stat().st_mtime)
+
+def get_from_langs(con):
+    for key in con.sscan_iter('languages:*'):
+        _, from_lang = key.decode('ascii').split(':')
+        yield from_lang
+def get_to_langs(con, from_lang):
+    return con.sscan_iter('languages:%s' % from_lang)
+def _add_pair(con, from_lang, to_lang):
+    con.sadd('languages:%s' % from_lang, to_lang)
+    con.sadd('languages:%s' % to_lang, from_lang)
 
 def search(con, x):
     full_alphabet = con.sscan_iter('characters')
@@ -38,18 +67,60 @@ def search(con, x):
                                  set(_bigger_fragments(full_alphabet, y)))
         for phrase in phrases:
             if y in phrase:
-                yield con.hgetall('phrase:%s' % phrase)
+                yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
 
-def index(con, lines):
-    for line in lines:
-        for x in line.pop('search_phrases'):
-            y = phrase.lower()
-            for character in y:
-                con.sadd('characters', character)
-            for fragment in set(_smaller_fragments(y)):
-                con.sadd('fragment:%s' % fragment, y)
-            for key, value in line.items():
-                con.hset('phrase:%s' % y, key, value)
+
+
+def index(con, data):
+    '''
+    Build the dictionary language index.
+
+    :param pathlib.Path data: Path to the data directory
+    '''
+    for name, module in FORMATS.items():
+        directory = data / name
+        if directory.is_dir():
+            for file in directory.iterdir():
+                pair = module.index(file)
+                if pair:
+                    f, t = pair
+                    languages[f][t].append(Dictionary(name, file, False))
+                    languages[t][f].append(Dictionary(name, file, True))
+
+    # Convert to normal dict for pickling.
+    i = {k: dict(v) for k,v in languages.items()}
+    for f in i:
+        for t in i[f]:
+            i[f][t].sort(key=lambda d: d.path.stat().st_size, reverse=True)
+    return i
+
+def ls(languages, froms):
+    for from_lang in sorted(froms if froms else from_langs(languages)):
+        for to_lang in sorted(to_langs(languages, from_lang)):
+            yield from_lang, to_lang
+def _find(data):
+    for name, _ in FORMATS.items():
+        directory = data / name
+        if directory.is_dir():
+            for file in directory.iterdir():
+                yield file
+
+def _restrict_chars(x):
+    return getattr(to_7bit, line['from_lang'], to_roman.identity)(x).lower()
+
+def _index_line(con, line):
+    for phrase in map(_restrict_chars, line.pop('search_phrases')):
+        for character in phrase:
+            con.sadd('characters', character)
+        for fragment in set(_smaller_fragments(phrase)):
+            con.sadd('fragment:%s' % fragment, y)
+
+        xs = (
+            line['from_lang'], line['from_word'],
+            line['to_lang'], line['to_word'],
+        )
+        identifier = hashlib.md5('\n'.join(xs).encode('utf-8')).hexdigest()
+        con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
 
 def _bigger_fragments(full_alphabet, search):
     for left_n in range(N-len(search)):
