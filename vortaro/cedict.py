@@ -15,15 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from pathlib import Path
-from textwrap import wrap
 from gzip import decompress
-from sys import stdout, stderr, exit
-from shutil import get_terminal_size
 
-from requests import get
+from .http import simple_download
 
-COLUMNS, ROWS = get_terminal_size((80, 20))
-CEDICT_LICENSE = (
+LICENSE = (
     'Please observe the copyrights CC-CEDICT.',
     '''\
 CC-CEDICT is licensed under a Creative Commons Attribution-Share Alike 3.0
@@ -37,16 +33,7 @@ under the same license (share alike).''',
 URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz'
 
 def download(directory):
-    for paragraph in CEDICT_LICENSE:
-        for line in wrap(paragraph, COLUMNS):
-            stdout.write(line + '\n')
-        stdout.write('\n')
-    r = get(URL)
     name = Path(URL).with_suffix('.txt').name
-    if r.ok:
-        body = decompress(r.content)
-        with (directory / name).open('wb') as fp:
-            fp.write(body)
-    else:
-        stderr.write('Problem downloading %s\n' % URL)
-        exit(1)
+    body = decompress(simple_download(URL, LICENSE, name, directory))
+    with (directory / name).open('wb') as fp:
+        fp.write(body)

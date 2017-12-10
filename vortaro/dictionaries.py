@@ -20,11 +20,12 @@ from sys import stdout
 from collections import defaultdict, namedtuple, OrderedDict
 
 from .lines import Line
-from . import paths, dictcc
+from . import paths, dictcc, cedict, espdic
 
 FORMATS = OrderedDict((
     ('dict.cc', dictcc),
     ('cc-cedict', cedict),
+    ('espdic', espdic),
 ))
 
 Dictionary = namedtuple('Dictionary', ('format', 'path', 'reversed'))

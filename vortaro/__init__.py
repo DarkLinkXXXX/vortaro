@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import datetime
+from os import makedirs
 from sys import stdout, stderr, exit
 from pathlib import Path
 from functools import partial
@@ -52,7 +53,9 @@ def download(source: tuple(dictionaries.FORMATS), data_dir: Path=DATA):
     :param source: Dictionary source to download from
     :param pathlib.path data_dir: Vortaro data directory
     '''
-    dictionaries.FORMATS[source].download(data_dir / source)
+    subdir = data_dir / source
+    makedirs(subdir, exist_ok=True)
+    dictionaries.FORMATS[source].download(subdir)
 
 def lookup(search: Word, limit: int=ROWS-2, *,
            data_dir: Path=DATA,
