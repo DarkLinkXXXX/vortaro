@@ -39,9 +39,6 @@ def download(directory):
         with file.open('wb') as fp:
             fp.write(body)
 
-def index(_):
-    return 'eo', 'en'
-
 def read(path):
     '''
     Read a dictionary file
@@ -52,20 +49,24 @@ def read(path):
         next(fp)
         for rawline in fp:
             l, r = rawline[:-1].split(' : ')
-            yield ESPDICLine(l, r)
+            yield {
+                'search_phrase': l,
+                'part_of_speech': _part_of_speech(l[-2:]),
 
-class ESPDICLine(EagerLine):
-    def __init__(self, from_word, to_word):
-        self._from_word = from_word
-        self._to_word = to_word
+                'from_lang': 'eo',
+                'from_word': l,
+                'to_lang': 'en',
+                'to_word': r,
+            }
+            yield {
+                'search_phrase': r,
+                'part_of_speech': _part_of_speech(l[-2:]),
 
-    @property
-    def part_of_speech(self):
-        if self.reverse:
-            esperanto = self._to_word
-        else:
-            esperanto = self._from_word
-        return _part_of_speech(esperanto)
+                'from_lang': 'en',
+                'from_word': r,
+                'to_lang': 'eo',
+                'to_word': l,
+            }
 
 POS = (
     ('noun', ('o', 'oj')),

@@ -17,6 +17,7 @@
 import re
 import webbrowser
 from textwrap import wrap
+from functools import lru_cache
 from shutil import get_terminal_size
 
 from .lines import EagerLine
@@ -36,23 +37,21 @@ directory: %s/''' % data_dir
     input()
     webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
 
-def index(file):
-    '''
-    :param pathlib.Path directory: Directory containing files
-    :returns: (from language, to language) or None
-    '''
-    with file.open('rb') as fp:
-        firstline = fp.readline()[:-1]
-    m = PAIR.match(firstline)
-    if m:
-        return tuple(x.decode('utf-8').lower() for x in m.groups())
-
 def read(path):
     '''
     Read a dictionary file
 
     :param dictionaries.Dictionary d: Dictionary
     '''
+    with file.open('rb') as fp:
+        firstline = fp.readline()[:-1]
+
+    m = PAIR.match(firstline)
+    if m:
+        left_lang, right_lang = m.groups()
+    else:
+        raise StopIteration
+
     with path.open() as fp:
         in_header = True
         for rawline in fp:
@@ -62,10 +61,25 @@ def read(path):
                 else:
                     in_header = False
             left_word, right_word, pos = rawline[:-1].split('\t')
-            yield DictCCLine(left_word, right_word, pos)
+            yield {
+                'search_phrase': _truncate(left_word),
+                'part_of_speech': pos,
 
-class DictCCLine(EagerLine):
-    @property
-    def from_word(self):
-        y = super(DictCCLine, self).from_word
-        return y.split(' [', 1)[0]
+                'from_lang': left_lang,
+                'from_word': _truncate(left_word),
+                'to_lang': right_lang,
+                'to_word': right_word,
+            }
+            yield {
+                'search_phrase': _truncate(right_word),
+                'part_of_speech': pos,
+
+                'from_lang': right_lang,
+                'from_word': _truncate(right_word),
+                'to_lang': left_lang,
+                'to_word': left_word,
+            }
+
+@lru_cache(1)
+def _truncate(x):
+    return x.split(' [', 1)[0]
