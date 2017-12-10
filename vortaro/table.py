@@ -37,6 +37,8 @@ class Table(object):
     def __bool__(self):
         return bool(self.results)
     def add(self, row):
+        if 'part_of_speech' not in row:
+            row['part_of_speech'] = ''
         self.results.append(row)
     def sort(self):
         self.results.sort(key=_sort_results)
@@ -53,7 +55,7 @@ class Table(object):
 
         widths = _widths(results)
 
-        tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
+        tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
         for result in results:

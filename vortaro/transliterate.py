@@ -17,10 +17,14 @@
 from collections import defaultdict
 from io import StringIO
 
+full_alphabet = set()
+
 class Alphabet(object):
     def __init__(self, alphabet):
         self._to_roman = alphabet
         self._from_roman = tuple((v,k) for (k,v) in alphabet)
+        for _, x in alphabet:
+            full_alphabet.add(x)
     def __repr__(self):
         return 'Alphabet(%s)' % repr(self._to_roman)
     def to_roman(self, word):
