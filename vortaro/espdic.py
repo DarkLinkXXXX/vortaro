@@ -34,7 +34,6 @@ def read(d):
         next(fp)
         for rawline in fp:
             l, r = rawline[:-1].split(' : ')
-            left_word, right_word, pos = rawline[:-1].split('\t')
             if d.reversed:
                 l, r = r, l
             yield '', l, r

@@ -46,3 +46,29 @@ def download(directory):
 
 def index(_):
     return 'zh', 'en'
+
+def read(d):
+    '''
+    Read a dictionary file
+
+    :param dictionaries.Dictionary d: Dictionary
+    '''
+    with d.path.open() as fp:
+        in_header = True
+        for rawline in fp:
+            if in_header:
+                if rawline.startswith('#'):
+                    continue
+                else:
+                    in_header = False
+
+            traditional, simplified, _rest = rawline[:-1].split(' ', 2)
+            _pinyin, *englishes, _ = _rest.split('/')
+            pinyin = _pinyin[:-2]
+
+            for english in englishes:
+                l = '%s [%s]' % (simplified, pinyin)
+                r = english
+                if d.reversed:
+                    l, r = r, l
+                yield '', l, r

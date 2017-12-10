@@ -75,7 +75,7 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     from itertools import product
     languages = dictionaries.index(data_dir)
 
-    not_available = set(languages).difference(from_langs).difference(to_langs)
+    not_available = set(from_langs).union(to_langs) - set(languages)
     if not_available:
         msg = 'These languages are not available: %s\n'
         stderr.write(msg % ', '.join(sorted(not_available)))

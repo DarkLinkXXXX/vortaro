@@ -56,7 +56,7 @@ def _index(data):
 
     :param pathlib.Path data: Path to the data directory
     '''
-    languages = defaultdict(dict)
+    languages = defaultdict(lambda: defaultdict(list))
     for name, module in FORMATS.items():
         directory = data / name
         if directory.is_dir():
@@ -64,9 +64,11 @@ def _index(data):
                 pair = module.index(file)
                 if pair:
                     f, t = pair
-                    languages[f][t] = Dictionary(name, file, False)
-                    languages[t][f] = Dictionary(name, file, True)
-    return languages
+                    languages[f][t].append(Dictionary(name, file, False))
+                    languages[t][f].append(Dictionary(name, file, True))
+
+    # Convert to normal dict for pickling.
+    return {k: dict(v) for k,v in languages.items()}
 
 def read(languages, from_lang, to_lang):
     '''
@@ -75,9 +77,9 @@ def read(languages, from_lang, to_lang):
     ds = languages.get(from_lang, {}).get(to_lang)
     for d in ds:
         module = FORMATS[d.format]
-        # Packing as a Line is slow. Maybe change this.
-        pos, from_word, to_word = module.read(d)
-        yield Line(pos, from_lang, from_word, to_lang, to_word)
+        for pos, from_word, to_word in module.read(d):
+            # Packing as a Line is slow. Maybe change this.
+            yield Line(pos, from_lang, from_word, to_lang, to_word)
 
 def ls(languages, froms):
     for from_lang in sorted(froms if froms else from_langs(languages)):
