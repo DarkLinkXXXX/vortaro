@@ -54,9 +54,7 @@ class Table(object):
                 widths[i] = max(widths[i], len(cell))
         widths[2] += adj
 
-    #   tpl_line = '{:%d}\t{:%d}:{:%d}\t{:%d}:{}\n' % tuple(widths)
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
-    #   tpl_line = tpl_line.replace('\t', ' | ')
         tpl_line = tpl_line.replace('\t', '   ')
 
         for line in lines:

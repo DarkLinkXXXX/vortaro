@@ -59,6 +59,7 @@ def read(from_lang, to_lang):
                 else:
                     _from_word, to_word = left_word, right_word
                 from_word = _from_word.split(' [', 1)[0]
+                # Packing as a Line is slow. Maybe change this.
                 yield Line(pos, from_lang, from_word, to_lang, to_word)
 
 def ls(froms=None):
