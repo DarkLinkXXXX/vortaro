@@ -20,8 +20,8 @@ from sys import stdout
 from pathlib import Path
 from shutil import get_terminal_size
 
-from . import dictionaries
-from .lines import Line, Table
+from . import alphabets, dictionaries
+from .lines import Table
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 HISTORY = Path(environ.get('HOME', '.')) / '.dict.cc_history'
@@ -86,20 +86,10 @@ def lookup(search: Word, limit: int=ROWS-2, *,
 
     table = Table(search)
     for from_lang, to_lang in pairs:
-        d = dictionaries.open(from_lang, to_lang)
-        if d:
-            with d.path.open() as fp:
-                for rawline in fp:
-                    if not (rawline.startswith('#') or not rawline.strip()):
-                        left_word, right_word, pos = rawline.rstrip('\n').split('\t')
-                        if d.reversed:
-                            to_word, _from_word = left_word, right_word
-                        else:
-                            _from_word, to_word = left_word, right_word
-                        from_word = _from_word.split('[', 1)[0].rstrip()
-                        line = Line(pos, from_lang, from_word, to_lang, to_word)
-                        if search in from_word:
-                            table.append(line)
+        to_roman = getattr(alphabets, from_lang, alphabets.identity).to_roman
+        for line in dictionaries.read(from_lang, to_lang):
+            if search in to_roman(line.from_word):
+                table.append(line)
     table.sort()
     if table:
         with HISTORY.open('a') as fp:

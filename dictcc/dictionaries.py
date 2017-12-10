@@ -21,6 +21,8 @@ from collections import defaultdict, namedtuple
 from pathlib import Path
 from os import environ
 
+from .lines import Line
+
 INDEX = 'index.p'
 Dictionary = namedtuple('Dictionary', ('path', 'reversed'))
 DIRECTORY = Path(environ.get('HOME', '.')) / '.dict.cc'
@@ -39,8 +41,19 @@ def build_index(directory):
                 languages[t][f] = Dictionary(file, True)
     return languages
 
-def open(from_lang, to_lang):
-    return LANGUAGES.get(from_lang, {}).get(to_lang)
+def read(from_lang, to_lang):
+    d = LANGUAGES.get(from_lang, {}).get(to_lang)
+    if d:
+        with d.path.open() as fp:
+            for rawline in fp:
+                if not (rawline.startswith('#') or not rawline.strip()):
+                    left_word, right_word, pos = rawline.rstrip('\n').split('\t')
+                    if d.reversed:
+                        to_word, _from_word = left_word, right_word
+                    else:
+                        _from_word, to_word = left_word, right_word
+                    from_word = _from_word.split('[', 1)[0].rstrip()
+                    yield Line(pos, from_lang, from_word, to_lang, to_word)
 
 def ls(froms=None):
     for from_lang in sorted(froms if froms else from_langs()):
