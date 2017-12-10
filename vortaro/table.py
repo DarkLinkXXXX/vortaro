@@ -48,14 +48,7 @@ class Table(object):
         else:
             results = self.results
 
-        widths = [0, 0, 0, 0]
-        for result in results:
-            row = result['part_of_speech'], \
-                result['from_lang'], result['from_word'], \
-                result['to_lang'], result['to_word']
-            for i, cell in enumerate(row[:-1]):
-                widths[i] = max(widths[i], len(cell))
-        widths[2] += adj
+        widths = _widths(results, adj)
 
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
@@ -75,3 +68,14 @@ class Table(object):
     def __repr__(self):
         return 'Table(search=%s, widths=%s, results=%s)' % \
             tuple(map(repr, (self.search, self.results)))
+
+def _widths(results, adj):
+    widths = [0, 0, 0, 0]
+    for result in results:
+        row = result['part_of_speech'], \
+            result['from_lang'], result['from_word'], \
+            result['to_lang'], result['to_word']
+        for i, cell in enumerate(row[:-1]):
+            widths[i] = max(widths[i], len(cell))
+    widths[2] += adj
+    return widths

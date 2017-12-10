@@ -17,7 +17,7 @@
 import datetime, pickle
 from os import makedirs
 from hashlib import md5
-from itertools import permutations, combinations
+from itertools import product, permutations, combinations
 
 from . import to_roman
 
@@ -71,7 +71,6 @@ def index(con, formats, data, force=False):
         if directory.is_dir():
             for file in directory.iterdir():
                 if force or not _get_up_to_date(con, file):
-                    print(8)
                     for line in module.read(file):
                         _index_line(con, line)
                     _set_up_to_date(con, file)
@@ -95,12 +94,12 @@ def _index_line(con, line):
     con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
 
 def _bigger_fragments(full_alphabet, search):
-    for left_n in range(N-len(search)):
-        right_n = N - left_n
-        left_options = permutations(combinations(full_alphabet, left_n))
-        right_options = permutations(combinations(full_alphabet, right_n))
-        for prefix, suffix in product(left_options, right_options):
-            yield prefix + search + suffix
+    '''
+    Add to the right to make more fragments.
+    '''
+    for options in combinations(full_alphabet, N - len(search)):
+        for suffix in permutations(options):
+            yield search + ''.join(suffix)
 
 def _smaller_fragments(phrase):
     if len(phrase) >= N:
