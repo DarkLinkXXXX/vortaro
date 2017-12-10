@@ -1,5 +1,5 @@
-python3 -m dictcc ls
-python3 -m dictcc lookup -from sv är
-python3 -m dictcc lookup -from hr možda
-python3 -m dictcc download
-python3 -c 'import dictcc; dictcc.lookup("dobr", limit=1000)'
+python3 -m vortaro ls
+python3 -m vortaro lookup -from sv är
+python3 -m vortaro lookup -from hr možda
+python3 -m vortaro download
+python3 -c 'import vortaro; vortaro.lookup("dobr", limit=1000)'

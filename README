@@ -1,53 +1,53 @@
-Tom's dict.cc reader
-====================
-Look up words in dict.cc dictionaries.
+Tom's dictionary
+================
+Look up words in bilingual dictionaries.
 
 Usage
 -----
 
 Install from PyPI. ::
 
-    pip3 install dictcc
+    pip3 install vortaro
 
 Follow these directions to download a dictionary. ::
 
-    python3 -m dictcc download
+    python3 -m vortaro download dict.cc
 
 Run this to confirm that you have saved the dictionary properly. ::
 
-    python3 -m dictcc ls
+    python3 -m vortaro ls
 
 Then you can look up stuff like this. ::
 
-    python3 -m dictcc lookup elephant
+    python3 -m vortaro lookup elephant
 
 The default is to look for the phrase in all dictionaries.
 Restrict to particular languages like this. ::
 
-    python3 -m dictcc lookup -to hr -to sv -from en elephant
+    python3 -m vortaro lookup -to hr -to sv -from en elephant
 
 Run these to see help. ::
 
-    python3 -m dictcc
-    python3 -m dictcc download -help
-    python3 -m dictcc ls -help
-    python3 -m dictcc lookup -help
+    python3 -m vortaro
+    python3 -m vortaro download -help
+    python3 -m vortaro ls -help
+    python3 -m vortaro lookup -help
 
 Shell integration
 -----------------
 Consider setting up an alias and tab completion. Here is what I use in tcsh. ::
 
-    alias dict.cc python3 -m dictcc lookup
-    complete dict.cc 'C%*%`cut -f 1 ~/.dict.cc_history`%'
+    alias vortaro python3 -m vortaro lookup
+    complete vortaro 'C%*%`cut -f 1 ~/.vortaro/history`%'
 
 Here an alias for sh. ::
 
-    alias dict.cc='python3 -m dictcc lookup'
+    alias vortaro='python3 -m vortaro lookup'
 
 Implementation
 --------------
 This is a Python module.
-Source code is at https://thomaslevine.com/scm/dict.cc/.
+Source code is at https://thomaslevine.com/scm/vortaro/.
 The command line interface uses `horetu <https://pypi.python.org/pypi/horetu/>`_.
 
 History
