@@ -37,7 +37,7 @@ def index(data):
     :param pathlib.Path data: Path to the data directory
     '''
     i = paths.index(data)
-    mtimes = tuple(map(_mtime, _find()))
+    mtimes = tuple(map(_mtime, _find(data)))
     if mtimes:
         if (not i.exists()) or (max(mtimes) > _mtime(i)):
             languages = _index(data)
@@ -94,7 +94,7 @@ def _mtime(path):
     return path.stat().st_mtime
 
 def _find(data):
-    for name, _ in FORMATS:
+    for name, _ in FORMATS.items():
         directory = data / name
         if directory.is_dir():
             for file in directory.iterdir():

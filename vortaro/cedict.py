@@ -32,10 +32,10 @@ under the same license (share alike).''',
     'https://www.mdbg.net/chinese/dictionary?page=cc-cedict',
 )
 URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz'
+FILENAME = Path(URL).with_suffix('.txt').name
 
 def download(directory):
-    name = Path(URL).with_suffix('.txt').name
-    file = (directory / name)
+    file = (directory / FILENAME)
     if file.exists():
         stderr.write('CC-CEDICT is already downloaded.\n')
         exit(1)
@@ -43,3 +43,6 @@ def download(directory):
         body = decompress(simple_download(URL, LICENSE, directory))
         with file.open('wb') as fp:
             fp.write(body)
+
+def index(_):
+    return 'zh', 'en'
