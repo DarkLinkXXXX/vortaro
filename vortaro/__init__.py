@@ -95,9 +95,10 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     words = dictionaries.word_index(data_dir, languages, pairs)
     for pair in pairs:
         from_lang, to_lang = pair
-        for xs in words[pair].values():
-            for x in xs:
-                table.add(from_lang, to_lang, x)
+        for lines in words[pair].values():
+            for line in lines:
+                if search in line.search_trans:
+                    table.add(from_lang, to_lang, line)
     table.sort()
 
     if table:

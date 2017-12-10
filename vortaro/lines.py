@@ -20,6 +20,9 @@ class EagerLine(object):
         self._to_word = to_word
         self.part_of_speech = part_of_speech
 
+    def __str__(self):
+        return '%s -> %s' % (self.from_word, self.to_word)
+
     @property
     def to_word(self):
         if self.reverse:
