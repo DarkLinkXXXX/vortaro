@@ -17,75 +17,83 @@
 import re
 import pickle
 from sys import stdout
-from collections import defaultdict, namedtuple
-from pathlib import Path
-from os import environ
+from collections import defaultdict, namedtuple, OrderedDict
 
 from .lines import Line
+from . import paths, dictcc
 
-INDEX = 'index.p'
-Dictionary = namedtuple('Dictionary', ('path', 'reversed'))
-DIRECTORY = Path(environ.get('HOME', '.')) / '.dict.cc'
+FORMATS = OrderedDict((
+    ('dict.cc', dictcc),
+))
 
-def build_index(directory):
-    languages = defaultdict(dict)
-    _regex = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
-    for file in directory.iterdir():
-        if file.name != INDEX:
-            with file.open('rb') as fp:
-                firstline = fp.readline()[:-1]
-            m = re.match(_regex, firstline)
-            if m:
-                f, t = (x.decode('utf-8').lower() for x in m.groups())
-                languages[f][t] = Dictionary(file, False)
-                languages[t][f] = Dictionary(file, True)
+Dictionary = namedtuple('Dictionary', ('format', 'path', 'reversed'))
+
+def index(data):
+    '''
+    Load the dictionary language index, rebuilding it if necessary.
+
+    :param pathlib.Path data: Path to the data directory
+    '''
+    i = paths.index(data)
+    mtimes = tuple(map(_mtime, _find()))
+    if mtimes:
+        if (not i.exists()) or (max(mtimes) > _mtime(i)):
+            languages = _index(data)
+            with i.open('wb') as fp:
+                pickle.dump(languages, fp)
+        else:
+            with i.open('rb') as fp:
+                languages = pickle.load(fp)
+    else:
+        languages = {}
     return languages
 
-def read(from_lang, to_lang):
-    d = LANGUAGES.get(from_lang, {}).get(to_lang)
-    if d:
-        with d.path.open() as fp:
-            in_header = True
-            for rawline in fp:
-                if in_header:
-                    if rawline.startswith('#') or not rawline.strip():
-                        continue
-                    else:
-                        in_header = False
+def _index(data):
+    '''
+    Build the dictionary language index.
 
-                left_word, right_word, pos = rawline[:-1].split('\t')
-                if d.reversed:
-                    to_word, _from_word = left_word, right_word
-                else:
-                    _from_word, to_word = left_word, right_word
-                from_word = _from_word.split(' [', 1)[0]
-                # Packing as a Line is slow. Maybe change this.
-                yield Line(pos, from_lang, from_word, to_lang, to_word)
+    :param pathlib.Path data: Path to the data directory
+    '''
+    languages = defaultdict(dict)
+    for name, module in FORMATS.items():
+        directory = data / name
+        if directory.is_dir():
+            for file in directory.iterdir():
+                pair = module.index(file)
+                if pair:
+                    f, t = pair
+                    languages[f][t] = Dictionary(name, file, False)
+                    languages[t][f] = Dictionary(name, file, True)
+    return languages
 
-def ls(froms=None):
-    for from_lang in sorted(froms if froms else from_langs()):
-        for to_lang in sorted(to_langs(from_lang)):
+def read(languages, from_lang, to_lang):
+    '''
+    Read the dictionaries for a language pair.
+    '''
+    ds = languages.get(from_lang, {}).get(to_lang)
+    for d in ds:
+        module = FORMATS[d.format]
+        # Packing as a Line is slow. Maybe change this.
+        pos, from_word, to_word = module.read(d)
+        yield Line(pos, from_lang, from_word, to_lang, to_word)
+
+def ls(languages, froms):
+    for from_lang in sorted(froms if froms else from_langs(languages)):
+        for to_lang in sorted(to_langs(languages, from_lang)):
             yield from_lang, to_lang
 
-def from_langs():
-    return set(LANGUAGES)
+def from_langs(languages):
+    return set(languages)
 
-def to_langs(from_lang):
-    return set(LANGUAGES.get(from_lang, set()))
+def to_langs(languages, from_lang):
+    return set(languages.get(from_lang, set()))
 
 def _mtime(path):
     return path.stat().st_mtime
 
-# Load language mappings.
-_mtimes = tuple(_mtime(f) for f in DIRECTORY.iterdir() if f.name != INDEX)
-if _mtimes:
-    if (not (DIRECTORY/INDEX).exists()) or \
-            (max(_mtimes) > _mtime(DIRECTORY/INDEX)):
-        LANGUAGES = build_index(DIRECTORY)
-        with (DIRECTORY / INDEX).open('wb') as fp:
-            pickle.dump(LANGUAGES, fp)
-    else:
-        with (DIRECTORY / INDEX).open('rb') as fp:
-            LANGUAGES = pickle.load(fp)
-else:
-    LANGUAGES = {}
+def _find(data):
+    for name, _ in FORMATS:
+        directory = data / name
+        if directory.is_dir():
+            for file in directory.iterdir():
+                yield file

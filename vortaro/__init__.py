@@ -15,16 +15,16 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import datetime
-from os import environ
-from sys import stdout
+from sys import stdout, stderr, exit
 from pathlib import Path
+from functools import partial
 from shutil import get_terminal_size
 
 from . import alphabets, dictionaries
 from .lines import Table
+from .paths import DATA, history
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
-HISTORY = Path(environ.get('HOME', '.')) / '.dict.cc_history'
 
 def Word(x):
     illegal = set('\t\n\r')
@@ -33,37 +33,32 @@ def Word(x):
     else:
         return x
 
-def ls(*languages):
+def ls(*languages, data_dir: Path=DATA):
     '''
     List available dictionaries.
 
     :param languages: If you pass any languages, limit the listing to
         dictionaries from the passed languages to other languages.
+    :param pathlib.path data_dir: Vortaro data directory
     '''
-    for pair in dictionaries.ls(languages or None):
+    i = dictionaries.index(data_dir)
+    for pair in dictionaries.ls(i, languages or None):
         stdout.write('%s -> %s\n' % pair)
 
-def download():
+def download(source: dictionaries.FORMATS, data_dir: Path=DATA):
     '''
     Download a dictionary.
+
+    :param source: Dictionary source to download from
+    :param pathlib.path data_dir: Vortaro data directory
     '''
-    import textwrap
-    import webbrowser
-    directions = '''\
-The download page will open in a web browser. Download the dictionary
-of interest (as zipped text), unzip it, and put the text file inside this
-directory: ~/.dict.cc/'''
-    for line in textwrap.wrap(directions, COLUMNS):
-        stdout.write(line + '\n')
-    stdout.write('\n')
-    stdout.write('Press enter when you are ready.\n')
-    input()
-    webbrowser.open('https://www1.dict.cc/translation_file_request.php?l=e')
+    source.download(data_dir)
 
 def lookup(search: Word, limit: int=ROWS-2, *,
+           data_dir: Path=DATA,
            width: int=COLUMNS,
-           from_langs: [tuple(dictionaries.LANGUAGES)]=(),
-           to_langs: [tuple(dictionaries.LANGUAGES)]=()):
+           from_langs: [str]=(),
+           to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
 
@@ -72,28 +67,36 @@ def lookup(search: Word, limit: int=ROWS-2, *,
     :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
+    :param pathlib.Path data_dir: Vortaro data directory
     '''
     from itertools import product
+    languages = dictionaries.index(data_dir)
+
+    not_available = set(languages).difference(from_langs).difference(to_langs)
+    if not_available:
+        msg = 'These languages are not available: %s\n'
+        stderr.write(msg % ', '.join(sorted(not_available)))
+        exit(1)
 
     if from_langs and to_langs:
         pairs = product(from_langs, to_langs)
     elif from_langs:
-        pairs = dictionaries.ls(from_langs)
+        pairs = dictionaries.ls(languages, from_langs)
     elif to_langs:
-        pairs = product(dictionaries.from_langs(), to_langs)
+        pairs = product(dictionaries.from_langs(languages), to_langs)
     else:
-        pairs = dictionaries.ls()
+        pairs = dictionaries.ls(languages, None)
 
     table = Table(search)
     for from_lang, to_lang in pairs:
         from_roman = getattr(alphabets, from_lang, alphabets.identity).from_roman
         search_trans = from_roman(search)
-        for line in dictionaries.read(from_lang, to_lang):
+        for line in dictionaries.read(languages, from_lang, to_lang):
             if search_trans in line.from_word:
                 table.append(line)
     table.sort()
     if table:
-        with HISTORY.open('a') as fp:
+        with history(data_dir).open('a') as fp:
             fp.write('%s\t%s\n' % (search, datetime.datetime.now()))
     for row in table.render(width, limit):
         stdout.write(row)
