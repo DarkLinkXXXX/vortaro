@@ -69,20 +69,30 @@ def read(path):
             pinyin = _pinyin[1:-2]
 
             for english in englishes:
-                yield english, CHINESE % (simplified, pinyin)
+                yield CEDICTLine(traditional, simplified, pinyin, english)
 
-CHINESE = '%s [%s]'
 class CEDICTLine(EagerLine):
+    CHINESE = '%s [%s]'
+    part_of_speech = ''
+
+    def __init__(self, traditional, simplified, pinyin, english):
+        self._traditional = traditional
+        self._simplified = simplified
+        self._pinyin = pinyin
+        self._english = english
+
+    @property
+    def from_word(self):
+        if self.reverse:
+            return self._english
+        else:
+            return self.CHINESE % (self._simplified, self._pinyin)
     @property
     def to_word(self):
-        x = super(CEDICTLine, self).to_word
-        if self.reversed:
-            m = re.match(r'([.+]) \[[a-z1-5 ]+\]$', x)
-            simplified, pinyin = m.groups()
-            return CHINESE % (simplified, _render_pinyin(pinyin))
+        if self.reverse:
+            return self.CHINESE % (self._simplified, _render_pinyin(self._pinyin))
         else:
-            return x
-
+            return self._english
 
 TONES = {
     'a': 'āáǎàa',
@@ -119,5 +129,11 @@ def _render_syllable(x):
                     replacement = l + TONES[r][tone]
                     break
             else:
-                return x
+                for v in 'aoeui':
+                    if v in syllable:
+                        original = v
+                        replacement = TONES[v][tone]
+                        break
+                else:
+                    return x
     return syllable.replace(original, replacement)

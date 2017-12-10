@@ -1,6 +1,24 @@
+# vortaro
+# Copyright (C) 2017  Thomas Levine
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 from sys import stderr, exit
-from functools import partial
+from functools import lru_cache
+
 from .http import simple_download
+from .lines import EagerLine
 
 URL = 'http://www.denisowski.org/Esperanto/ESPDIC/espdic.txt'
 FILENAME = URL.split('/')[-1]
@@ -24,14 +42,42 @@ def download(directory):
 def index(_):
     return 'eo', 'en'
 
-def read(d):
+def read(path):
     '''
     Read a dictionary file
 
-    :param pathlib.Path: Dictionary file
+    :param pathlib.Path path: Dictionary file
     '''
     with path.open() as fp:
         next(fp)
         for rawline in fp:
             l, r = rawline[:-1].split(' : ')
-            yield '', l, r
+            yield ESPDICLine(l, r)
+
+class ESPDICLine(EagerLine):
+    def __init__(self, from_word, to_word):
+        self._from_word = from_word
+        self._to_word = to_word
+
+    @property
+    def part_of_speech(self):
+        if self.reverse:
+            esperanto = self._to_word
+        else:
+            esperanto = self._from_word
+        return _part_of_speech(esperanto)
+
+POS = (
+    ('noun', ('o', 'oj')),
+    ('adj',  ('a', 'aj')),
+    ('adv',  ('e',)),
+    ('verb', ('i', 'is', 'as', 'os', 'u')),
+)
+
+@lru_cache(None)
+def _part_of_speech(word):
+    for pos, suffixes in POS:
+        for suffix in suffixes:
+            if word.endswith(suffix):
+                return pos
+    return ''

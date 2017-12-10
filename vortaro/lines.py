@@ -15,10 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class EagerLine(object):
-    def __init__(self, from_word, to_word, part_of_speech=None):
-        self.part_of_speech = part_of_speech
+    def __init__(self, from_word, to_word, part_of_speech=''):
         self._from_word = from_word
         self._to_word = to_word
+        self.part_of_speech = part_of_speech
 
     @property
     def to_word(self):
@@ -33,22 +33,27 @@ class EagerLine(object):
         else:
             return self._from_word
 
+def _sort_results(result):
+    from_lang, to_lang, line = result
+    return (
+        len(line.from_word),
+        line.part_of_speech,
+        from_lang,
+        line.from_word,
+        to_lang,
+        line.to_word,
+    )
+
 class Table(object):
-    def __init__(self, search, lines=None):
+    def __init__(self, search, results=None):
         self.search = search
-        self.lines = lines if lines else []
+        self.results = results if results else []
     def __bool__(self):
-        return bool(self.lines)
-    def append(self, line):
-        self.lines.append(line)
+        return bool(self.results)
+    def append(self, from_lang, to_lang, line):
+        self.results.append((from_lang, to_lang, line))
     def sort(self):
-        self.lines.sort(key=lambda line: (
-            len(line.from_word),
-            line.part_of_speech,
-            line.from_lang,
-            line.to_lang,
-            line.to_word,
-        ))
+        self.results.sort(key=_sort_results)
     def render(self, cols, rows):
         '''
         Supporting multibyte characters was a bit annoying. ::
@@ -59,25 +64,26 @@ class Table(object):
         adj = len(tpl_cell) - 2
 
         if rows:
-            lines = self.lines[:rows]
+            results = self.results[:rows]
         else:
-            lines = self.lines
+            results = self.results
 
         widths = [0, 0, 0, 0]
-        for line in lines:
-            for i, cell in enumerate(line[:-1]):
+        for from_lang, to_lang, line in results:
+            row = line.part_of_speech, from_lang, line.from_word, to_lang, line.to_word
+            for i, cell in enumerate(row[:-1]):
                 widths[i] = max(widths[i], len(cell))
         widths[2] += adj
 
         tpl_line = '%%-0%ds\t%%-0%ds:%%-0%ds\t%%-0%ds:%%s' % tuple(widths)
         tpl_line = tpl_line.replace('\t', '   ')
 
-        for line in lines:
+        for from_lang, to_lang, line in results:
             highlighted = line.from_word.replace(self.search, tpl_cell % self.search)
             formatted = tpl_line % (
                 line.part_of_speech,
-                line.from_lang, highlighted,
-                line.to_lang, line.to_word,
+                from_lang, highlighted,
+                to_lang, line.to_word,
             )
             if cols:
                 yield formatted[:(cols+adj)] + '\n'
@@ -85,5 +91,5 @@ class Table(object):
                 yield formatted + '\n'
 
     def __repr__(self):
-        return 'Table(search=%s, widths=%s, lines=%s)' % \
-            tuple(map(repr, (self.search, self.lines)))
+        return 'Table(search=%s, widths=%s, results=%s)' % \
+            tuple(map(repr, (self.search, self.results)))

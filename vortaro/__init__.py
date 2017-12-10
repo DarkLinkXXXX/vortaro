@@ -96,7 +96,7 @@ def lookup(search: Word, limit: int=ROWS-2, *,
         search_trans = from_roman(search)
         for line in dictionaries.read(languages, from_lang, to_lang):
             if search_trans in line.from_word:
-                table.append(line)
+                table.append(from_lang, to_lang, line)
     table.sort()
     if table:
         with history(data_dir).open('a') as fp:

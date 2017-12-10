@@ -27,7 +27,7 @@ FORMATS = OrderedDict((
     ('espdic', espdic),
 ))
 
-Dictionary = namedtuple('Dictionary', ('format', 'path', 'reversed'))
+Dictionary = namedtuple('Dictionary', ('format', 'path', 'reverse'))
 
 def index(data):
     '''
@@ -77,7 +77,7 @@ def read(languages, from_lang, to_lang):
     for d in ds:
         module = FORMATS[d.format]
         for line in module.read(d.path):
-            line.reversed = d.reversed
+            line.reverse = d.reverse
             yield line
 
 def ls(languages, froms):

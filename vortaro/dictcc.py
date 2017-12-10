@@ -62,7 +62,7 @@ def read(path):
                 else:
                     in_header = False
             left_word, right_word, pos = rawline[:-1].split('\t')
-            yield DictCCLine(pos, left_word, right_word)
+            yield DictCCLine(left_word, right_word, pos)
 
 class DictCCLine(EagerLine):
     @property
