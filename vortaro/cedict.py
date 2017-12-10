@@ -34,6 +34,6 @@ URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.g
 
 def download(directory):
     name = Path(URL).with_suffix('.txt').name
-    body = decompress(simple_download(URL, LICENSE, name, directory))
+    body = decompress(simple_download(URL, LICENSE, directory))
     with (directory / name).open('wb') as fp:
         fp.write(body)

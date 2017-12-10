@@ -10,7 +10,7 @@ def get(url):
     return _get(url,
                 headers={'user-agent': 'https://pypi.python.org/pypi/vortaro'})
 
-def simple_download(url, license, name, directory):
+def simple_download(url, license, directory):
     for paragraph in license:
         for line in wrap(paragraph, COLUMNS):
             stdout.write(line + '\n')

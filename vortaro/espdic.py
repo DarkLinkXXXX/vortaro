@@ -9,4 +9,8 @@ LICENSE = (
 	'In order to encourage its use in the Esperanto community, ESPDIC (Esperanto English Dictionary) by Paul Denisowski is licensed under a Creative Commons Attribution 3.0 Unported License. What this means is that anyone can use, transmit, or modify ESPDIC for any purpose, including commercial purposes, as long as the source is properly attributed.',
 )
 
-download = partial(simple_download, URL, LICENSE, URL.split('/')[-1])
+def download(directory):
+    name = URL.split('/')[-1]
+    body = simple_download(URL, LICENSE, directory)
+    with (directory / name).open('wb') as fp:
+        fp.write(body)
