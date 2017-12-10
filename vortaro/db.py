@@ -50,75 +50,40 @@ def _add_pair(con, from_lang, to_lang):
     con.sadd('languages:%s' % from_lang, to_lang)
     con.sadd('languages:%s' % to_lang, from_lang)
 
-def search(con, x):
-    root = x.lower()
-    if set(root).issubset(transliterate.full_alphabet):
-        for i in range(len(root), MAX_PHRASE_LENGTH+1):
-            for phrase in con.sscan_iter(b'lengths:%d' % i):
-                if root in phrase.decode('utf-8'):
-                    yield from map(pickle.loads, con.hvals(b'phrase:%s' % phrase))
+def search(con, query):
+    sub_queries = defaultdict(set)
+    for alphabet in transliterate.alphabets:
+        t = alphabet.from_roman(query)
+        sub_queries[len(t)].add(t)
 
-def index(con, formats, data, force=False):
+    for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
+        for x in sub_queries[i]:
+            for y in con.sscan_iter(b'lengths:%d' % i, match='*%s*' % x):
+                for z in con.lscan_iter('phrase:%s' % y):
+                    yield pickle.loads(z)
+
+def index(con, formats, data):
     '''
     Build the dictionary language index.
 
     :param pathlib.Path data: Path to the data directory
     '''
-    if force:
-        for name, module in formats.items():
-            directory = data / name
-            if directory.is_dir():
-                for file in directory.iterdir():
-                    _set_out_of_date(con, file)
-
-    skip = 0
-    files = 0
-    definitions = 0
-    pairs = set()
-    fragments = defaultdict(list)
     for name, module in formats.items():
         directory = data / name
         if directory.is_dir():
             for file in directory.iterdir():
-                if not _get_out_of_date(con, file):
-                    skip += 1
-                else:
-                    files += 1
-                    for line in module.read(file):
-                        phrase = _restrict_chars(line['from_lang'], line.pop('search_phrase'))
-                        xs = (
-                            line['from_lang'], line['from_word'],
-                            line['to_lang'], line['to_word'],
-                        )
-                        identifier = md5('\n'.join(xs).encode('utf-8')).hexdigest()
-                        pairs.add((line['from_lang'], line['to_lang']))
-
-                        con.sadd(b'lengths:%d' % len(phrase), phrase)
-                        con.hset('phrase:%s' % phrase, identifier, pickle.dumps(line))
-
-                        definitions += 1
-                        if definitions % LOG_INTERVAL == 0:
-                            for pair in pairs:
-                                _add_pair(con, *pair)
-                            pairs.clear()
-
-                            msg = '\rIndexed %d definitions from %d files' \
-                                  ' (Skipped %d already-indexed files)'
-                            stderr.write(msg % (definitions, files, skip))
-                            
-                _set_up_to_date(con, file)
-
-def _restrict_chars(lang, text):
-    return getattr(transliterate, lang, transliterate.identity).to_roman(text).lower()
-
-def _search_fragments(search):
-    if len(search) <= N:
-        yield search
-    else:
-        for i in range(1+len(search)-N):
-            yield search[i:i+N]
-
-def _index_fragments(phrase):
-    for i in range(len(phrase)):
-        for j in range(1, 1+N):
-            yield phrase[i:i+j]
+                lines = tuple(module.read(file))
+                phrases = defaultdict(set)
+                pairs = set()
+                for line in lines:
+                    line['from_lang'] = line['from_lang'].lower()
+                    line['to_lang'] = line['to_lang'].lower()
+                    phrase = line.pop('search_phrase').lower()
+                    phrases[len(phrase)].add(phrase)
+                    pairs.add((line['from_lang'], line['to_lang']))
+                    con.lpush('phrase:%s' % phrase, pickle.dumps(line))
+                for key, values in phrases.items():
+                    con.sadd(b'lengths:%d' % key, *values)
+                for pair in pairs:
+                    _add_pair(con, *pair)
+                stderr.write('Processed %s' % file)

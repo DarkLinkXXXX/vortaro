@@ -77,7 +77,7 @@ def download(source: tuple(FORMATS), force=False, data_dir: Path=DATA,
     FORMATS[source].download(subdir)
 
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    db.index(con, FORMATS, data_dir, force)
+    db.index(con, FORMATS, data_dir)
 
 def index(force=False, data_dir: Path=DATA,
           redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
@@ -91,7 +91,8 @@ def index(force=False, data_dir: Path=DATA,
     :param redis_db: Redis database number
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    db.index(con, FORMATS, data_dir, force)
+    con.flushdb()
+    db.index(con, FORMATS, data_dir)
 
 def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
@@ -115,7 +116,9 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     from_langs = set(from_langs)
     to_langs = set(to_langs)
 
+    print(8)
     from_allowed = set(db.get_from_langs(con))
+    print(8)
     for from_lang in from_langs:
         if from_lang in from_allowed:
             to_allowed = db.get_to_langs(con, from_lang)
@@ -125,8 +128,7 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
                     stderr.write(tpl % (from_lang, to_lang))
         else:
             stderr.write('Language not available: %s\n' % from_lang)
-
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    print(8)
 
     table = Table(search)
     for definition in db.search(con, search):
