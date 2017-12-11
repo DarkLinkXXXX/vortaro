@@ -14,10 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import download, index, lookup, ls
+from . import complete, download, index, lookup, ls
 import horetu
 
 horetu.cli(horetu.Program([
+    complete,
     ls,
     index,
     download,

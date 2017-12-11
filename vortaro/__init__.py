@@ -14,8 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from shlex import split
 from os import environ, makedirs
-from sys import stdout, stderr, exit
+from sys import stdin, stdout, stderr, exit
 from pathlib import Path
 from itertools import product
 from functools import partial
@@ -100,7 +101,7 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
            from_langs: [str]=(), to_langs: [str]=()):
     '''
-    Search for a word in the dictionaries.
+    Search for a word in the dictionaries, and format the result as a table.
 
     :param search: The word/fragment you are searching for
     :param limit: Maximum number of words to return
@@ -124,6 +125,38 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     table.sort()
 
     if table:
-        db.history(data_dir, search)
+        db.add_history(data_dir, search)
     for row in table.render(width, limit):
         stdout.write(row)
+
+def complete(data_dir: Path=DATA,
+             redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
+             from_langs: [str]=(), to_langs: [str]=()):
+    '''
+    Search for a word in the dictionaries, and display in a format suitable
+    for tab completion. Each line has one result phrase and no definition,
+    language code, &c. Only unambiguous completions are displayed.
+
+    :param argv: The command line string in which you are calling vortaro lookup
+    :param from_langs: Languages the word is in, defaults to all
+    :param to_langs: Languages to look for translations, defaults to all
+    :param pathlib.Path data_dir: Vortaro data directory
+    :param redis_host: Redis host
+    :param redis_port: Redis port
+    :param redis_db: Redis database number
+    '''
+    argv = split(stdin.read().decode('utf-8'))
+    if not argv:
+        slugs = db.get_history(data_dir)
+    else:
+        slugs = []
+        search = argv[-1]
+        con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+
+        for slug, definition in db.complete(con, search):
+            if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
+                    ((not to_langs) or (definition['to_lang'] in to_langs)):
+                slugs.append(slug)
+
+    for slug in slugs:
+        stdout.write('%s\n' % slug)
