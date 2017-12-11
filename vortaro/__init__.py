@@ -137,7 +137,6 @@ def complete(data_dir: Path=DATA,
     for tab completion. Each line has one result phrase and no definition,
     language code, &c. Only unambiguous completions are displayed.
 
-    :param argv: The command line string in which you are calling vortaro lookup
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
@@ -145,12 +144,13 @@ def complete(data_dir: Path=DATA,
     :param redis_port: Redis port
     :param redis_db: Redis database number
     '''
-    argv = split(stdin.read().decode('utf-8'))
+    argv = split(stdin.read())
     if not argv:
-        slugs = db.get_history(data_dir)
+        slugs = set(db.get_history(data_dir))
     else:
         slugs = []
         search = argv[-1]
+        print(search)
         con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
         for slug, definition in db.complete(con, search):

@@ -50,12 +50,13 @@ def search(con, query):
         for i in range(len(t), MAX_PHRASE_LENGTH+1):
             sub_queries[i].add(t.encode('utf-8'))
 
-    for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
-        for a in sub_queries[i]:
-            for b in con.sscan_iter(b'lengths:%d' % i):
-                if a in b:
-                    for c in con.sscan_iter(b'phrase:%s' % b):
-                        yield _line_loads(c)
+    if sub_queries:
+        for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
+            for a in sub_queries[i]:
+                for b in con.sscan_iter(b'lengths:%d' % i):
+                    if a in b:
+                        for c in con.sscan_iter(b'phrase:%s' % b):
+                            yield _line_loads(c)
 
 def complete(con, query):
     sub_queries = defaultdict(set)
@@ -65,20 +66,21 @@ def complete(con, query):
             sub_queries[i].add(t.encode('utf-8'))
 
     sent = set()
-    for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
-        for a in sub_queries[i]:
-            for b in con.sscan_iter(b'lengths:%d' % i):
-                if a in b:
-                    for c in con.sscan_iter(b'phrase:%s' % b):
-                        d = _line_loads(c)
-                        f = getattr(transliterate, d['from_lang'],
-                                    transliterate.identity)
-                        g = f.to_roman(d['from_word'])
-                        if g not in sent:
-                            sent.add(g)
-                            yield g, f
-        if sent:
-            break
+    if sub_queries:
+        for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
+            for a in sub_queries[i]:
+                for b in con.sscan_iter(b'lengths:%d' % i):
+                    if b.startswith(a):
+                        for c in con.sscan_iter(b'phrase:%s' % b):
+                            d = _line_loads(c)
+                            f = getattr(transliterate, d['from_lang'],
+                                        transliterate.identity)
+                            g = f.to_roman(d['from_word'])
+                            if g not in sent:
+                                sent.add(g)
+                                yield g, f
+            if sent:
+                break
 
 def index(con, formats, data):
     '''
