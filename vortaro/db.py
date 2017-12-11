@@ -58,17 +58,6 @@ def search(con, query):
                         for c in con.sscan_iter(b'phrase:%s' % b):
                             yield _line_loads(c)
 
-def complete(con, query):
-    sent = set()
-    for alphabet in transliterate.alphabets:
-        for key in con.scan_iter('phrase:%s*' % alphabet.from_roman(query)):
-            _, slug_bytes = key.split(b':', 1)
-            slug_str = slug_bytes.decode('utf-8')
-            if slug_str not in sent:
-                sent.add(slug_str)
-                for data in con.sscan_iter(b'phrase:%s' % slug_bytes):
-                    yield slug_str, _line_loads(data)
-
 def index(con, formats, data):
     '''
     Build the dictionary language index.
