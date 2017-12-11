@@ -146,17 +146,13 @@ def complete(data_dir: Path=DATA,
     '''
     argv = split(stdin.read())
     if not argv:
-        slugs = set(db.get_history(data_dir))
+        for slug in set(db.get_history(data_dir)):
+            stdout.write('%s\n' % slug)
     else:
-        slugs = []
         search = argv[-1]
-        print(search)
         con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
         for slug, definition in db.complete(con, search):
             if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
                     ((not to_langs) or (definition['to_lang'] in to_langs)):
-                slugs.append(slug)
-
-    for slug in slugs:
-        stdout.write('%s\n' % slug)
+                stdout.write('%s\n' % slug)
