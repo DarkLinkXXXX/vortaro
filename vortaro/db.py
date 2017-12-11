@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import datetime, pickle
+import datetime
 from os import makedirs
 from sys import stderr
 from hashlib import md5
@@ -23,7 +23,7 @@ from collections import defaultdict
 from . import transliterate
 
 LOG_INTERVAL = 10000
-MAX_PHRASE_LENGTH = 12
+MAX_PHRASE_LENGTH = 18
 
 def history(data, search):
     with (data / 'history').open('a') as fp:
@@ -39,28 +39,19 @@ def _set_up_to_date(con, path):
 def _set_out_of_date(con, path):
     con.delete('dictionaries:%s' % path.absolute())
 
-def get_from_langs(con):
-    for key in con.scan_iter('languages:*'):
-        _, from_lang = key.decode('ascii').split(':')
-        yield from_lang
-def get_to_langs(con, from_lang):
-    for member in con.sscan_iter('languages:%s' % from_lang):
-        yield member.decode('ascii')
-def _add_pair(con, from_lang, to_lang):
-    con.sadd('languages:%s' % from_lang, to_lang)
-    con.sadd('languages:%s' % to_lang, from_lang)
-
 def search(con, query):
     sub_queries = defaultdict(set)
     for alphabet in transliterate.alphabets:
         t = alphabet.from_roman(query)
-        sub_queries[len(t)].add(t)
+        for i in range(len(t), MAX_PHRASE_LENGTH+1):
+            sub_queries[i].add(t.encode('utf-8'))
 
     for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
-        for x in sub_queries[i]:
-            for y in con.sscan_iter(b'lengths:%d' % i, match='*%s*' % x):
-                for z in con.lscan_iter('phrase:%s' % y):
-                    yield pickle.loads(z)
+        for a in sub_queries[i]:
+            for b in con.sscan_iter(b'lengths:%d' % i):
+                if a in b:
+                    for c in con.sscan_iter(b'phrase:%s' % b):
+                        yield _line_loads(c)
 
 def index(con, formats, data):
     '''
@@ -79,11 +70,20 @@ def index(con, formats, data):
                     line['from_lang'] = line['from_lang'].lower()
                     line['to_lang'] = line['to_lang'].lower()
                     phrase = line.pop('search_phrase').lower()
-                    phrases[len(phrase)].add(phrase)
-                    pairs.add((line['from_lang'], line['to_lang']))
-                    con.lpush('phrase:%s' % phrase, pickle.dumps(line))
+                    phrases[min(MAX_PHRASE_LENGTH, len(phrase))].add(phrase)
+                    con.sadd('phrase:%s' % phrase, _line_dumps(line))
                 for key, values in phrases.items():
                     con.sadd(b'lengths:%d' % key, *values)
-                for pair in pairs:
-                    _add_pair(con, *pair)
-                stderr.write('Processed %s' % file)
+                stderr.write('Processed %s\n' % file)
+
+def _line_dumps(x):
+    return '\t'.join((
+        x.get('part_of_speech', ''),
+        x['from_word'], x['from_lang'],
+        x['to_word'], x['to_lang'],
+    )).encode('utf-8')
+def _line_loads(x):
+    y = {}
+    y['part_of_speech'], y['from_word'], y['from_lang'], \
+        y['to_word'], y['to_lang'] = x.decode('utf-8').split('\t')
+    return y

@@ -73,6 +73,7 @@ def read(path):
                 'to_word': left_word,
             }
 
+_sep = re.compile(r' [\[{]')
 @lru_cache(1)
 def _truncate(x):
-    return x.split(' [', 1)[0]
+    return _sep.split(x)[0]

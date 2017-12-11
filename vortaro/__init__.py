@@ -79,19 +79,20 @@ def download(source: tuple(FORMATS), force=False, data_dir: Path=DATA,
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     db.index(con, FORMATS, data_dir)
 
-def index(force=False, data_dir: Path=DATA,
+def index(drop=False, data_dir: Path=DATA,
           redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
     '''
     Download a dictionary.
 
     :param pathlib.path data_dir: Vortaro data directory
-    :param bool force: Force updating of the index
+    :param bool drop: Delete the existing index before indexing.
     :param redis_host: Redis host
     :param redis_port: Redis port
     :param redis_db: Redis database number
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    con.flushdb()
+    if drop:
+        con.flushdb()
     db.index(con, FORMATS, data_dir)
 
 def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
@@ -112,23 +113,6 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param redis_db: Redis database number
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-
-    from_langs = set(from_langs)
-    to_langs = set(to_langs)
-
-    print(8)
-    from_allowed = set(db.get_from_langs(con))
-    print(8)
-    for from_lang in from_langs:
-        if from_lang in from_allowed:
-            to_allowed = db.get_to_langs(con, from_lang)
-            for to_lang in to_langs:
-                if to_lang not in to_allowed:
-                    tpl = 'Language pair not available: %s\n'
-                    stderr.write(tpl % (from_lang, to_lang))
-        else:
-            stderr.write('Language not available: %s\n' % from_lang)
-    print(8)
 
     table = Table(search)
     for definition in db.search(con, search):

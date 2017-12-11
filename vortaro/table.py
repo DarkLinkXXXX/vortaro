@@ -83,18 +83,18 @@ def _highlight(lang, big_foreign, small_roman):
     alphabet = getattr(transliterate, lang, transliterate.identity)
     big_roman = alphabet.to_roman(big_foreign)
 
-    left = big_roman.lower().index(small_roman.lower())
-    right = left + len(small_roman)
-    
-    y = (
-        alphabet.from_roman(big_roman[:left]),
-        alphabet.from_roman(big_roman[left:right]),
-        alphabet.from_roman(big_roman[right:]),
-    )
-    if ''.join(y) == big_foreign:
-        return y
-    else:
-        return (big_foreign, '', '')
+    if small_roman.lower() in big_roman.lower():
+        left = big_roman.lower().index(small_roman.lower())
+        right = left + len(small_roman)
+        
+        y = (
+            alphabet.from_roman(big_roman[:left]),
+            alphabet.from_roman(big_roman[left:right]),
+            alphabet.from_roman(big_roman[right:]),
+        )
+        if ''.join(y) == big_foreign:
+            return y
+    return (big_foreign, '', '')
 
 def _widths(results):
     widths = [0, 0, 0, 0]
