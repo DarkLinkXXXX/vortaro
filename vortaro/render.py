@@ -106,3 +106,20 @@ def _widths(results):
             widths[i] = max(widths[i], len(cell))
     widths[2] += len(UNDERLINE) + len(NORMAL)
     return widths
+
+def Stream(search, cols, result):
+    widths = (10, 4, 28, 4)
+    tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths
+    tpl_line = tpl_line.replace('\t', '   ')
+
+    formatted = tpl_line % (
+        result['part_of_speech'],
+        result['from_lang'],
+        highlight(result['from_lang'], result['from_word'], search),
+        result['to_lang'],
+        result['to_word'],
+    )
+    if cols and UNDERLINE in formatted and NORMAL in formatted:
+        return formatted[:(cols+2)] + '\n'
+    else:
+        return formatted + '\n'

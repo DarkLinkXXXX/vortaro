@@ -25,7 +25,7 @@ from shutil import get_terminal_size
 
 from redis import StrictRedis
 
-from .table import Table
+from .render import Table, Stream
 from . import (
     db,
     dictcc, cedict, espdic
@@ -96,10 +96,41 @@ def index(drop=False, data_dir: Path=DATA,
         con.flushdb()
     db.index(con, FORMATS, data_dir)
 
-def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
            redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
            from_langs: [str]=(), to_langs: [str]=()):
+    '''
+    Search for a word in the dictionaries.
+
+    :param search: The word/fragment you are searching for
+    :param limit: Maximum number of words to return
+    :param width: Number of column in a line, or 0 to disable truncation
+    :param from_langs: Languages the word is in, defaults to all
+    :param to_langs: Languages to look for translations, defaults to all
+    :param pathlib.Path data_dir: Vortaro data directory
+    :param redis_host: Redis host
+    :param redis_port: Redis port
+    :param redis_db: Redis database number
+    '''
+    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    fmt = partial(Stream, search, width)
+
+    i = 0
+    for definition in db.search(con, search):
+        if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
+                ((not to_langs) or (definition['to_lang'] in to_langs)):
+            stdout.write(fmt(definition))
+            i += 1
+            if i >= limit:
+                break
+    if i:
+        db.add_history(data_dir, search)
+
+def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+          data_dir: Path=DATA,
+          redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
+          from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries, and format the result as a table.
 
@@ -115,16 +146,16 @@ def lookup(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     '''
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
-    table = Table(search)
+    t = Table(search)
     for definition in db.search(con, search):
         if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
                 ((not to_langs) or (definition['to_lang'] in to_langs)):
-            table.add(definition)
-        if len(table) >= limit:
+            t.add(definition)
+        if len(t) >= limit:
             break
-    table.sort()
+    t.sort()
 
-    if table:
+    if t:
         db.add_history(data_dir, search)
-    for row in table.render(width, limit):
+    for row in t.render(width, limit):
         stdout.write(row)
