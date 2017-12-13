@@ -35,7 +35,7 @@ FORMATS = OrderedDict((
     ('cc-cedict', cedict),
     ('espdic', espdic),
 ))
-DB = 7 # Redis DB number
+DB = 12 # Redis DB number
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
@@ -46,20 +46,6 @@ def Word(x):
         raise ValueError('Word contains forbidden characters.')
     else:
         return x
-
-def ls(*from_langs, data_dir: Path=DATA,
-       redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
-    '''
-    List available dictionaries.
-
-    :param from_langs: If you pass a languages, limit the listing to
-        dictionaries from the passed language to other languages.
-    :param pathlib.path data_dir: Vortaro data directory
-    '''
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    for from_lang in sorted(from_langs or db.get_from_langs(con)):
-        for to_lang in sorted(db.get_to_langs(con, from_lang)):
-            stdout.write('%s -> %s\n' % (from_lang, to_lang))
 
 def download(source: tuple(FORMATS), force=False, data_dir: Path=DATA,
              redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
@@ -96,6 +82,18 @@ def index(drop=False, data_dir: Path=DATA,
         con.flushdb()
     db.index(con, FORMATS, data_dir)
 
+def languages(redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
+    '''
+    List from-languages that have been indexed.
+
+    :param redis_host: Redis host
+    :param redis_port: Redis port
+    :param redis_db: Redis database number
+    '''
+    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    for language in db.languages(con):
+        print(language)
+
 def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
            redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
@@ -117,7 +115,7 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     fmt = partial(Stream, search, width)
 
     i = 0
-    for definition in db.search(con, search):
+    for definition in db.search(con, from_langs, search):
         if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
                 ((not to_langs) or (definition['to_lang'] in to_langs)):
             stdout.write(fmt(definition))
@@ -147,7 +145,7 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     t = Table(search)
-    for definition in db.search(con, search):
+    for definition in db.search(con, from_langs, search):
         if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
                 ((not to_langs) or (definition['to_lang'] in to_langs)):
             t.add(definition)

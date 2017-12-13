@@ -43,7 +43,14 @@ def _set_up_to_date(con, path):
 def _set_out_of_date(con, path):
     con.delete('dictionaries:%s' % path.absolute())
 
-def search(con, query):
+def languages(con):
+    for l in con.sscan_iter(b'languages'):
+        yield l.decode('ascii')
+
+def search(con, from_langs, query):
+    if not from_langs:
+        from_langs = tuple(languages(con))
+
     sub_queries = defaultdict(set)
     for alphabet in transliterate.alphabets:
         t = alphabet.from_roman(query)
@@ -53,10 +60,12 @@ def search(con, query):
     if sub_queries:
         for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
             for a in sub_queries[i]:
-                for b in con.sscan_iter(b'lengths:%d' % i):
-                    if a in b:
-                        for c in con.sscan_iter(b'phrase:%s' % b):
-                            yield _line_loads(c)
+                for language in from_langs:
+                    key = b'lengths:%s:%d' % (language.encode('ascii'), i)
+                    for b in con.sscan_iter(key):
+                        if a in b:
+                            for c in con.sscan_iter(b'phrase:%s' % b):
+                                yield _line_loads(c)
 
 def index(con, formats, data):
     '''
@@ -75,11 +84,18 @@ def index(con, formats, data):
                     line['from_lang'] = line['from_lang'].lower()
                     line['to_lang'] = line['to_lang'].lower()
                     phrase = line.pop('search_phrase').lower()
-                    phrases[min(MAX_PHRASE_LENGTH, len(phrase))].add(phrase)
+                    key = (
+                        line['from_lang'].encode('ascii'),
+                        min(MAX_PHRASE_LENGTH, len(phrase)),
+                    )
+                    phrases[key].add(phrase)
                     con.sadd('phrase:%s' % phrase, _line_dumps(line))
                 for key, values in phrases.items():
-                    con.sadd(b'lengths:%d' % key, *values)
+                    con.sadd(b'lengths:%s:%d' % key, *values)
                 stderr.write('Processed %s\n' % file)
+    for fullkey in con.keys(b'lengths:*'):
+        _, lang, _ = fullkey.split(b':')
+        con.sadd(b'languages', lang)
 
 def _line_dumps(x):
     return '\t'.join((
