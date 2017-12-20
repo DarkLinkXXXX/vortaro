@@ -18,9 +18,10 @@ import datetime
 from os import makedirs
 from sys import stderr
 from hashlib import md5
+from itertools import product
 from collections import defaultdict
 
-from . import transliterate
+from .transliterate import ALPHABETS, IDENTITY
 
 LOG_INTERVAL = 10000
 MAX_PHRASE_LENGTH = 18
@@ -44,28 +45,32 @@ def _set_out_of_date(con, path):
     con.delete('dictionaries:%s' % path.absolute())
 
 def languages(con):
-    for l in con.sscan_iter(b'languages'):
-        yield l.decode('ascii')
+    for l in con.sscan_iter(b'pairs'):
+        yield tuple(l.decode('ascii').split(':'))
 
-def search(con, from_langs, query):
-    if not from_langs:
-        from_langs = tuple(languages(con))
+def search(con, from_langs, to_langs, query):
+    if not from_langs or not to_langs:
+        ls = tuple(languages(con))
+        if not from_langs:
+            from_langs = (l[0] for l in ls)
+        if not to_langs:
+            to_langs = (l[1] for l in ls)
+    pairs = tuple(product(from_langs, to_langs))
 
-    sub_queries = defaultdict(set)
-    for alphabet in transliterate.alphabets:
-        t = alphabet.from_roman(query)
-        for i in range(len(t), MAX_PHRASE_LENGTH+1):
-            sub_queries[i].add(t.encode('utf-8'))
-
-    if sub_queries:
-        for i in range(min(sub_queries), MAX_PHRASE_LENGTH+1):
-            for a in sub_queries[i]:
-                for language in from_langs:
-                    key = b'lengths:%s:%d' % (language.encode('ascii'), i)
-                    for b in con.sscan_iter(key):
-                        if a in b:
-                            for c in con.sscan_iter(b'phrase:%s' % b):
-                                yield _line_loads(c)
+    start = min(len(alphabet.from_roman(query)) \
+                for alphabet in ALPHABETS.values())
+    for i in range(start, MAX_PHRASE_LENGTH+1):
+        for _pair in pairs:
+            pair = tuple(l.encode('ascii') for l in _pair)
+            from_lang, to_lang = pair
+            alphabet = ALPHABETS.get(from_lang, IDENTITY)
+            encoded_query = alphabet.to_roman(query).encode('utf-8')
+            key = b'lengths:%s:%s:%d' % (pair + (i,))
+            for word_fragment in con.sscan_iter(key):
+                if encoded_query in word_fragment:
+                    key = b'phrase:%s:%s:%s' % (pair + (word_fragment,))
+                    for definition in con.sscan_iter(key):
+                        yield _line_loads(definition)
 
 def index(con, formats, data):
     '''
@@ -86,16 +91,20 @@ def index(con, formats, data):
                     phrase = line.pop('search_phrase').lower()
                     key = (
                         line['from_lang'].encode('ascii'),
+                        line['to_lang'].encode('ascii'),
                         min(MAX_PHRASE_LENGTH, len(phrase)),
                     )
                     phrases[key].add(phrase)
-                    con.sadd('phrase:%s' % phrase, _line_dumps(line))
+                    args = key[:2] + (phrase.encode('utf-8'),)
+                    con.sadd(b'phrase:%s:%s:%s' % args, _line_dumps(line))
                 for key, values in phrases.items():
-                    con.sadd(b'lengths:%s:%d' % key, *values)
+                    con.sadd(b'lengths:%s:%s:%d' % key, *values)
                 stderr.write('Processed %s\n' % file)
+                break
+        break
     for fullkey in con.keys(b'lengths:*'):
-        _, lang, _ = fullkey.split(b':')
-        con.sadd(b'languages', lang)
+        _, from_lang, to_lang, _ = fullkey.split(b':')
+        con.sadd(b'pairs', b'%s:%s' % (from_lang, to_lang))
 
 def _line_dumps(x):
     return '\t'.join((

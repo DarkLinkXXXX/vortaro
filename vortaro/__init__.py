@@ -35,7 +35,7 @@ FORMATS = OrderedDict((
     ('cc-cedict', cedict),
     ('espdic', espdic),
 ))
-DB = 12 # Redis DB number
+DB = 7 # Redis DB number
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
@@ -115,13 +115,11 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     fmt = partial(Stream, search, width)
 
     i = 0
-    for definition in db.search(con, from_langs, search):
-        if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
-                ((not to_langs) or (definition['to_lang'] in to_langs)):
-            stdout.write(fmt(definition))
-            i += 1
-            if i >= limit:
-                break
+    for definition in db.search(con, from_langs, to_langs, search):
+        i += 1
+        stdout.write(fmt(definition))
+        if i >= limit:
+            break
     if i:
         db.add_history(data_dir, search)
 
@@ -145,10 +143,8 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     t = Table(search)
-    for definition in db.search(con, from_langs, search):
-        if ((not from_langs) or (definition['from_lang'] in from_langs)) and \
-                ((not to_langs) or (definition['to_lang'] in to_langs)):
-            t.add(definition)
+    for definition in db.search(con, from_langs, to_langs, search):
+        t.add(definition)
         if len(t) >= limit:
             break
     t.sort()

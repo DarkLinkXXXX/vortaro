@@ -17,17 +17,10 @@
 from collections import defaultdict
 from io import StringIO
 
-full_alphabet = set()
-alphabets = []
-
 class Alphabet(object):
     def __init__(self, alphabet):
         self._to_roman = alphabet
         self._from_roman = tuple((v,k) for (k,v) in alphabet)
-
-        alphabets.append(self)
-        for _, x in alphabet:
-            full_alphabet.add(x)
 
     def __repr__(self):
         return 'Alphabet(%s)' % repr(self._to_roman)
@@ -79,36 +72,38 @@ class Alphabet(object):
                     write(char, mapping[char.lower()][''])
         return output.getvalue()
 
-identity = Alphabet(())
-sr = Alphabet((
-    ('а', 'a'),
-    ('б', 'b'),
-    ('ц', 'c'),
-    ('д', 'd'),
-    ('е', 'e'),
-    ('ф', 'f'),
-    ('г', 'g'),
-    ('х', 'h'),
-    ('и', 'i'),
-    ('ј', 'j'),
-    ('к', 'k'),
-    ('л', 'l'),
-    ('м', 'm'),
-    ('н', 'n'),
-    ('о', 'o'),
-    ('п', 'p'),
-    ('р', 'r'),
-    ('с', 's'),
-    ('т', 't'),
-    ('у', 'u'),
-    ('в', 'v'),
-    ('з', 'z'),
-    ('ш', 'š'),
-    ('ж', 'ž'),
-    ('ћ', 'ć'),
-    ('ч', 'č'),
-    ('ђ', 'dj'),
-    ('џ', 'dž'),
-    ('њ', 'nj'),
-    ('љ', 'lj'),
-))
+IDENTITY = Alphabet(())
+ALPHABETS = dict(
+    sr = Alphabet((
+        ('а', 'a'),
+        ('б', 'b'),
+        ('ц', 'c'),
+        ('д', 'd'),
+        ('е', 'e'),
+        ('ф', 'f'),
+        ('г', 'g'),
+        ('х', 'h'),
+        ('и', 'i'),
+        ('ј', 'j'),
+        ('к', 'k'),
+        ('л', 'l'),
+        ('м', 'm'),
+        ('н', 'n'),
+        ('о', 'o'),
+        ('п', 'p'),
+        ('р', 'r'),
+        ('с', 's'),
+        ('т', 't'),
+        ('у', 'u'),
+        ('в', 'v'),
+        ('з', 'z'),
+        ('ш', 'š'),
+        ('ж', 'ž'),
+        ('ћ', 'ć'),
+        ('ч', 'č'),
+        ('ђ', 'dj'),
+        ('џ', 'dž'),
+        ('њ', 'nj'),
+        ('љ', 'lj'),
+    ))
+)

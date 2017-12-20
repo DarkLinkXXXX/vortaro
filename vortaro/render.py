@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import transliterate
+from .transliterate import ALPHABETS, IDENTITY
 
 UNDERLINE = '\033[4m'
 NORMAL = '\033[0m'
@@ -80,7 +80,7 @@ def highlight(lang, big_foreign, small_roman):
     a, b, c = _highlight(lang, big_foreign, small_roman)
     return ''.join((a, UNDERLINE, b, NORMAL, c))
 def _highlight(lang, big_foreign, small_roman):
-    alphabet = getattr(transliterate, lang, transliterate.identity)
+    alphabet = ALPHABETS.get(lang, IDENTITY)
     big_roman = alphabet.to_roman(big_foreign)
 
     if small_roman.lower() in big_roman.lower():
