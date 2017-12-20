@@ -100,8 +100,6 @@ def index(con, formats, data):
                 for key, values in phrases.items():
                     con.sadd(b'lengths:%s:%s:%d' % key, *values)
                 stderr.write('Processed %s\n' % file)
-                break
-        break
     for fullkey in con.keys(b'lengths:*'):
         _, from_lang, to_lang, _ = fullkey.split(b':')
         con.sadd(b'pairs', b'%s:%s' % (from_lang, to_lang))
