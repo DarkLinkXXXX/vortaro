@@ -23,10 +23,10 @@ def _sort_results(result):
     return (
         len(result['from_word']),
         result['part_of_speech'],
-        result['from_lang'],
         result['from_word'],
-        result['to_lang'],
         result['to_word'],
+        result['from_lang'],
+        result['to_lang'],
     )
 
 class Table(object):
@@ -108,7 +108,7 @@ def _widths(results):
     return widths
 
 def Stream(search, cols, result):
-    widths = (10, 4, 28, 4)
+    widths = (16, 8, 28, 8)
     tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths
     tpl_line = tpl_line.replace('\t', '   ')
 

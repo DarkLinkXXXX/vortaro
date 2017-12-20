@@ -52,25 +52,31 @@ def search(con, from_langs, to_langs, query):
     if not from_langs or not to_langs:
         ls = tuple(languages(con))
         if not from_langs:
-            from_langs = (l[0] for l in ls)
+            from_langs = sorted(set(l[0] for l in ls))
         if not to_langs:
-            to_langs = (l[1] for l in ls)
+            to_langs = sorted(set(l[1] for l in ls))
     pairs = tuple(product(from_langs, to_langs))
 
     start = min(len(alphabet.from_roman(query)) \
                 for alphabet in ALPHABETS.values())
+    encoded_queries = {}
     for i in range(start, MAX_PHRASE_LENGTH+1):
-        for _pair in pairs:
-            pair = tuple(l.encode('ascii') for l in _pair)
-            from_lang, to_lang = pair
-            alphabet = ALPHABETS.get(from_lang, IDENTITY)
-            encoded_query = alphabet.to_roman(query).encode('utf-8')
-            key = b'lengths:%s:%s:%d' % (pair + (i,))
+        results = []
+        for from_lang, to_lang in pairs:
+            if from_lang in encoded_queries:
+                encoded_query = encoded_queries[from_lang]
+            else:
+                alphabet = ALPHABETS.get(from_lang, IDENTITY)
+                encoded_query = alphabet.to_roman(query).encode('utf-8')
+                encoded_queries[from_lang] = encoded_query
+            lang_key = (from_lang.encode('ascii'), to_lang.encode('ascii'))
+            key = b'lengths:%s:%s:%d' % (lang_key + (i,))
             for word_fragment in con.sscan_iter(key):
                 if encoded_query in word_fragment:
-                    key = b'phrase:%s:%s:%s' % (pair + (word_fragment,))
+                    key = b'phrase:%s:%s:%s' % (lang_key + (word_fragment,))
                     for definition in con.sscan_iter(key):
-                        yield _line_loads(definition)
+                        results.append(_line_loads(definition))
+        yield from sorted(results, key=lambda line: line['to_word'])
 
 def index(con, formats, data):
     '''
