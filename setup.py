@@ -16,16 +16,16 @@
 
 from distutils.core import setup
 
-setup(name='dictcc',
+setup(name='vortaro',
       author='Thomas Levine',
       author_email='_@thomaslevine.com',
-      description='Query dict.cc dictionaries.',
+      description='Query bilingual dictionaries.',
       url='https://thomaslevine.com/scm/dict.cc/',
-      packages=['dictcc'],
+      packages=['vortaro'],
       install_requires=['horetu>=0.4.1'],
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
-      version='0.1',
+      version='0.2',
       license='GPL',
       )
