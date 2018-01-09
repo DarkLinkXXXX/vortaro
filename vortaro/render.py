@@ -16,9 +16,6 @@
 
 from .transliterate import ALPHABETS, IDENTITY
 
-UNDERLINE = '\033[4m'
-NORMAL = '\033[0m'
-
 def _sort_results(result):
     return (
         len(result['from_word']),
@@ -67,10 +64,7 @@ class Table(object):
                 result['to_lang'],
                 result['to_word'],
             )
-            if cols and UNDERLINE in formatted and NORMAL in formatted:
-                yield formatted[:(cols+2)] + '\n'
-            else:
-                yield formatted + '\n'
+            yield formatted + '\n'
 
     def __repr__(self):
         return 'Table(search=%s, widths=%s, results=%s)' % \
@@ -78,7 +72,9 @@ class Table(object):
 
 def highlight(lang, big_foreign, small_roman):
     a, b, c = _highlight(lang, big_foreign, small_roman)
-    return ''.join((a, UNDERLINE, b, NORMAL, c))
+    high = ''.join('̳̳'+ x for x in b)
+    return ''.join((a, '', high, '', c))
+
 def _highlight(lang, big_foreign, small_roman):
     alphabet = ALPHABETS.get(lang, IDENTITY)
     big_roman = alphabet.to_roman(big_foreign)
@@ -104,7 +100,6 @@ def _widths(results):
             result['to_lang'], result['to_word']
         for i, cell in enumerate(row[:-1]):
             widths[i] = max(widths[i], len(cell))
-    widths[2] += len(UNDERLINE) + len(NORMAL)
     return widths
 
 def Stream(search, cols, result):
@@ -119,7 +114,4 @@ def Stream(search, cols, result):
         result['to_lang'],
         result['to_word'],
     )
-    if cols and UNDERLINE in formatted and NORMAL in formatted:
-        return formatted[:(cols+2)] + '\n'
-    else:
-        return formatted + '\n'
+    return formatted + '\n'
