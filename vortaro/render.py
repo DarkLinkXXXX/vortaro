@@ -16,6 +16,9 @@
 
 from .transliterate import ALPHABETS, IDENTITY
 
+UNDERLINE = '\033[4m'
+NORMAL = '\033[0m'
+
 def _sort_results(result):
     return (
         len(result['from_word']),
@@ -71,11 +74,6 @@ class Table(object):
             tuple(map(repr, (self.search, self.results)))
 
 def highlight(lang, big_foreign, small_roman):
-    a, b, c = _highlight(lang, big_foreign, small_roman)
-    high = ''.join('̳̳'+ x for x in b)
-    return ''.join((a, '', high, '', c))
-
-def _highlight(lang, big_foreign, small_roman):
     alphabet = ALPHABETS.get(lang, IDENTITY)
     big_roman = alphabet.to_roman(big_foreign)
 
@@ -89,8 +87,9 @@ def _highlight(lang, big_foreign, small_roman):
             alphabet.from_roman(big_roman[right:]),
         )
         if ''.join(y) == big_foreign:
-            return y
-    return (big_foreign, '', '')
+            a, b, c = y
+            return a + UNDERLINE + b + NORMAL + c
+    return big_foreign + NORMAL + NORMAL
 
 def _widths(results):
     widths = [0, 0, 0, 0]
