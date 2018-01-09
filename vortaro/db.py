@@ -67,7 +67,7 @@ def search(con, from_langs, to_langs, query):
                 encoded_query = encoded_queries[from_lang]
             else:
                 alphabet = ALPHABETS.get(from_lang, IDENTITY)
-                encoded_query = alphabet.to_roman(query).encode('utf-8')
+                encoded_query = alphabet.from_roman(query).encode('utf-8')
                 encoded_queries[from_lang] = encoded_query
             lang_key = (from_lang.encode('ascii'), to_lang.encode('ascii'))
             key = b'lengths:%s:%s:%d' % (lang_key + (i,))
