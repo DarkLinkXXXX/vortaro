@@ -16,7 +16,7 @@
 
 import re
 import webbrowser
-from sys import stdout
+from sys import stdout, stderr
 from textwrap import wrap
 from functools import lru_cache
 from shutil import get_terminal_size
@@ -54,25 +54,29 @@ def read(path):
                     continue
                 else:
                     in_header = False
-            left_word, right_word, pos = rawline[:-1].split('\t')
-            yield {
-                'search_phrase': _truncate(left_word),
-                'part_of_speech': pos,
+            try:
+                left_word, right_word, pos = rawline[:-1].split('\t')
+            except Exception as e:
+                stderr.write('%s\n' % e)
+            else:
+                yield {
+                    'search_phrase': _truncate(left_word),
+                    'part_of_speech': pos,
 
-                'from_lang': left_lang,
-                'from_word': _truncate(left_word),
-                'to_lang': right_lang,
-                'to_word': right_word,
-            }
-            yield {
-                'search_phrase': _truncate(right_word),
-                'part_of_speech': pos,
+                    'from_lang': left_lang,
+                    'from_word': _truncate(left_word),
+                    'to_lang': right_lang,
+                    'to_word': right_word,
+                }
+                yield {
+                    'search_phrase': _truncate(right_word),
+                    'part_of_speech': pos,
 
-                'from_lang': right_lang,
-                'from_word': _truncate(right_word),
-                'to_lang': left_lang,
-                'to_word': left_word,
-            }
+                    'from_lang': right_lang,
+                    'from_word': _truncate(right_word),
+                    'to_lang': left_lang,
+                    'to_word': left_word,
+                }
 
 _sep = re.compile(r' [\[{]')
 @lru_cache(1)
