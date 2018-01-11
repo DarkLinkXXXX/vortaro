@@ -16,6 +16,7 @@
 
 import re
 import webbrowser
+from sys import stdout
 from textwrap import wrap
 from functools import lru_cache
 from shutil import get_terminal_size

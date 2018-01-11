@@ -84,10 +84,13 @@ def index(con, formats, data):
 
     :param pathlib.Path data: Path to the data directory
     '''
+    processed = set(x.decode('utf-8') for x in con.sscan_iter(b'processed'))
     for name, module in formats.items():
         directory = data / name
         if directory.is_dir():
             for file in directory.iterdir():
+                if str(file.absolute()) in processed:
+                    continue
                 lines = tuple(module.read(file))
                 phrases = defaultdict(set)
                 pairs = set()
@@ -106,6 +109,7 @@ def index(con, formats, data):
                 for key, values in phrases.items():
                     con.sadd(b'lengths:%s:%s:%d' % key, *values)
                 stderr.write('Processed %s\n' % file)
+                con.sadd(b'processed', str(file.absolute()))
     for fullkey in con.keys(b'lengths:*'):
         _, from_lang, to_lang, _ = fullkey.split(b':')
         con.sadd(b'pairs', b'%s:%s' % (from_lang, to_lang))
