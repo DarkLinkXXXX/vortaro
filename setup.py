@@ -20,7 +20,7 @@ setup(name='vortaro',
       author='Thomas Levine',
       author_email='_@thomaslevine.com',
       description='Query bilingual dictionaries.',
-      url='https://thomaslevine.com/scm/dict.cc/',
+      url='https://thomaslevine.com/scm/vortaro/',
       packages=['vortaro'],
       install_requires=['horetu>=0.4.1'],
       classifiers=[
