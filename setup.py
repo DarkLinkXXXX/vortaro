@@ -26,7 +26,7 @@ setup(name='vortaro',
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
-      version='0.2',
+      version='0.3',
       license='GPL',
       entry_points = {
           'console_scripts': ['vortaro = dadaportal:dadaportal']
