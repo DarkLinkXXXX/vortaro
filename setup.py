@@ -22,13 +22,13 @@ setup(name='vortaro',
       description='Query bilingual dictionaries.',
       url='https://thomaslevine.com/scm/vortaro/',
       packages=['vortaro'],
-      install_requires=['horetu>=0.4.1'],
+      install_requires=['horetu>=0.4.1', 'redis>=2.10.6'],
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
-      version='0.3',
+      version='0.3.1',
       license='GPL',
       entry_points = {
-          'console_scripts': ['vortaro = dadaportal:dadaportal']
+          'console_scripts': ['vortaro = vortaro.ui:ui']
       },
       )
