@@ -1,0 +1,1 @@
+import vortaro; vortaro.index()

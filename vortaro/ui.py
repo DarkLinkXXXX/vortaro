@@ -14,21 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from distutils.core import setup
+from . import download, index, table, stream, languages
+import horetu
 
-setup(name='vortaro',
-      author='Thomas Levine',
-      author_email='_@thomaslevine.com',
-      description='Query bilingual dictionaries.',
-      url='https://thomaslevine.com/scm/vortaro/',
-      packages=['vortaro'],
-      install_requires=['horetu>=0.4.1'],
-      classifiers=[
-          'Programming Language :: Python :: 3.6',
-      ],
-      version='0.2',
-      license='GPL',
-      entry_points = {
-          'console_scripts': ['vortaro = dadaportal:dadaportal']
-      },
-      )
+def ui():
+    horetu.cli(horetu.Program([
+        languages,
+        index,
+        download,
+        table, stream,
+    ], name='vortaro'))
