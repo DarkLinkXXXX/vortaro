@@ -1,0 +1,46 @@
+-- vortaro
+-- Copyright (C) 2017, 2018 Thomas Levine
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU Affero General Public License as published
+-- by the Free Software Foundation, either version 3 of the License,
+-- or (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+name:                vortaro
+version:             1.0.0.0
+synopsis:            High-performance bilingual dictionary
+-- description:         
+homepage:            https://thomaslevine.com/scm/vortaro
+license:             AGPL-3
+license-file:        COPYING
+author:              Thomas Levine
+maintainer:          _@thomaslevine.com
+-- copyright:           
+category:            Language
+build-type:          Simple
+extra-source-files:  ChangeLog.md, README
+cabal-version:       >=1.10
+
+executable vortaro
+  main-is:             Query.hs
+  -- other-modules:       
+  -- other-extensions:    
+  build-depends:       base >=4.10 && <4.11
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+executable vortaro-index
+  main-is:             Index.hs
+  -- other-modules:       
+  -- other-extensions:    
+  build-depends:       base >=4.10 && <4.11
+  hs-source-dirs:      src
+  default-language:    Haskell2010
