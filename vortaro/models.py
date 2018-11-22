@@ -90,13 +90,11 @@ class File(Base):
                     pair=pair, first_lang=True,
                     lang=line['to_lang'] if to_first else line['from_lang'],
                     word=line['to_word'] if to_first else line['from_word'],
-                    latin=line['to_latin'] if to_first else line['from_latin'],
                 ))
                 pair.halves.append(PairHalf(
                     pair=pair, first_lang=False,
                     lang=line['from_lang'] if to_first else line['to_lang'],
                     word=line['from_word'] if to_first else line['to_word'],
-                    latin=line['from_latin'] if to_first else line['to_latin'],
                 ))
             session.flush()
 
@@ -135,15 +133,9 @@ def index(session, format_names, data_directory):
                 File.index(session, file)
     session.commit()
 
-def index_content(session, formats, data):
-    for fullkey in con.keys(b'lengths:*'):
-        _, from_lang, to_lang, _ = fullkey.split(b':')
-        con.sadd(b'pairs', b'%s:%s' % (from_lang, to_lang))
-
-
-
-
 def search(con, from_langs, to_langs, query):
+    session.query(PairHalf) \
+        .filter(PairHalf.lang.in_(from_langs))
     if not from_langs or not to_langs:
         ls = tuple(languages(con))
         if not from_langs:
