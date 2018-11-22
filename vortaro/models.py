@@ -66,13 +66,38 @@ class File(Base):
     def out_of_date(self):
         return self.mtime < _mtime(self.path)
     @classmethod
-    def index(cls, session, path):
+    def index(cls, session, read, path):
         obj = session.query(Path).filter(cls.path==path).first()
         if obj == None or obj.out_of_date():
             if obj == None:
                 obj = File(path=str(path.absolute()), mtime=_mtime(path))
-            # XXX
-            session.add(obj)
+                session.add(obj)
+            else:
+                for pair in obj.pairs:
+                    for half in pair.halves:
+                        session.delete(half)
+                    session.delete(pair)
+                session.flush()
+            for i, line in enumerate(read(path)):
+                pair = Pair(
+                    source_file=obj, source_index=i,
+                    part_of_speech=line['part_of_speech'],
+                )
+                session.add(pair)
+
+                to_first = line['from_lang'] > line['to_lang']
+                pair.halves.append(PairHalf(
+                    pair=pair, first_lang=True,
+                    lang=line['to_lang'] if to_first else line['from_lang'],
+                    word=line['to_word'] if to_first else line['from_word'],
+                    latin=line['to_latin'] if to_first else line['from_latin'],
+                ))
+                pair.halves.append(PairHalf(
+                    pair=pair, first_lang=False,
+                    lang=line['from_lang'] if to_first else line['to_lang'],
+                    word=line['from_word'] if to_first else line['to_word'],
+                    latin=line['from_latin'] if to_first else line['to_latin'],
+                ))
             session.flush()
 
 def _mtime(path):
@@ -93,7 +118,8 @@ class PairHalf(Base):
     __tablename__ = 'pairhalf'
     pair_id = Column(Integer, ForeignKey(Pair.id), primary_key=True)
     first_lang = Column(Boolean, nullable=False, primary_key=True)
-    text = Column(String, nullable=False)
+    lang = Column(String, nullable=False)
+    word = Column(String, nullable=False)
     pair = relationship(Pair, backref='halves')
 
 def index(session, format_names, data_directory):
@@ -110,41 +136,6 @@ def index(session, format_names, data_directory):
     session.commit()
 
 def index_content(session, formats, data):
-    '''
-    Build the dictionary language index.
-
-    :param pathlib.Path data: Path to the data directory
-    '''
-
-
-
-
-    processed = set(x.decode('utf-8') for x in con.sscan_iter(b'processed'))
-    for name, module in formats.items():
-        directory = data / name
-        if directory.is_dir():
-            for file in directory.iterdir():
-                if str(file.absolute()) in processed:
-                    continue
-                lines = tuple(module.read(file))
-                phrases = defaultdict(set)
-                pairs = set()
-                for line in lines:
-                    line['from_lang'] = line['from_lang'].lower()
-                    line['to_lang'] = line['to_lang'].lower()
-                    phrase = line.pop('search_phrase').lower()
-                    key = (
-                        line['from_lang'].encode('ascii'),
-                        line['to_lang'].encode('ascii'),
-                        min(MAX_PHRASE_LENGTH, len(phrase)),
-                    )
-                    phrases[key].add(phrase)
-                    args = key[:2] + (phrase.encode('utf-8'),)
-                    con.sadd(b'phrase:%s:%s:%s' % args, _line_dumps(line))
-                for key, values in phrases.items():
-                    con.sadd(b'lengths:%s:%s:%d' % key, *values)
-                stderr.write('Processed %s\n' % file)
-                con.sadd(b'processed', str(file.absolute()))
     for fullkey in con.keys(b'lengths:*'):
         _, from_lang, to_lang, _ = fullkey.split(b':')
         con.sadd(b'pairs', b'%s:%s' % (from_lang, to_lang))
