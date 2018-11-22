@@ -61,13 +61,32 @@ class File(Base):
     id = Column(Integer, primary_key=True)
     path = Column(String, unique=True)
     mtime = Column(Integer, nullable=False)
+
     @property
     def out_of_date(self):
-        return self.mtime < int(Path(self.path).stat().st_mtime)
+        return self.mtime < _mtime(self.path)
+    @classmethod
+    def index(cls, session, path):
+        obj = session.query(Path).filter(cls.path==path).first()
+        if obj == None or obj.out_of_date():
+            if obj == None:
+                obj = File(path=str(path.absolute()), mtime=_mtime(path))
+            # XXX
+            session.add(obj)
+            session.flush()
+
+def _mtime(path):
+    return int(Path(path).stat().st_mtime)
 
 class Pair(Base):
     __tablename__ = 'pair'
     id = Column(Integer, primary_key=True)
+
+    source_file_id = Column(Integer, ForeignKey(File.id), nullable=False)
+    source_file = relationship(File, backref=backref('pairs', lazy='dynamic'))
+    source_index = Column(Integer, nullable=False)
+    UniqueConstraint(source_file_id, source_index)
+
     part_of_speech = Column(String, nullable=False)
 
 class PairHalf(Base):
@@ -75,13 +94,31 @@ class PairHalf(Base):
     pair_id = Column(Integer, ForeignKey(Pair.id), primary_key=True)
     first_lang = Column(Boolean, nullable=False, primary_key=True)
     text = Column(String, nullable=False)
+    pair = relationship(Pair, backref='halves')
 
-def index(con, formats, data):
+def index(session, format_names, data_directory):
+    '''
+    :param session: SQLAlchemy session
+    :param format_names: Names of the dictionary format modules/subdirectories
+    :param data_directory: Data directory
+    '''
+    for name in format_names:
+        directory = data_directory / name
+        if directory.is_dir():
+            for file in directory.iterdir():
+                File.index(session, file)
+    session.commit()
+
+def index_content(session, formats, data):
     '''
     Build the dictionary language index.
 
     :param pathlib.Path data: Path to the data directory
     '''
+
+
+
+
     processed = set(x.decode('utf-8') for x in con.sscan_iter(b'processed'))
     for name, module in formats.items():
         directory = data / name
