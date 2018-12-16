@@ -155,6 +155,7 @@ class Dictionary(Base):
     from_lang = relationship(Language, foreign_keys=[from_lang_id])
     from_word = Column(String, nullable=False)
 
+    # TODO: Allow for queries in both roman and original
     from_roman_transliteration = Column(String, nullable=True)
     CheckConstraint('from_word != from_roman_transliteration')
     from_roman = column_property(func.coalesce(from_roman_transliteration, from_word))
