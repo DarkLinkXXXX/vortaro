@@ -18,12 +18,28 @@ import pytest
 from ..highlight import highlight
 
 HIGHLIGHT = (
-    ('en', 'elephant',  'PH',   '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
+    ('en', 'elephant',  'PH', ('ele', 'ph', 'ant')),
+
+    ('bs', 'mineralna voda', 'voda', ('mineralna ', 'voda', '')),
+    ('bg', 'минерална вода', 'voda', ('минерална ', 'вода', '')),
+
+    ('sr', 'чокањчиће', 'či',   ('чокањ', 'чи', 'ће')),
+    ('sr', 'чокањчиће', 'njČi', ('чока', 'њчи', 'ће')),
+    ('sr', 'чокањчиће', 'jči',  ('', 'чокањчиће', '')),
+
+
+#   ('en', 'elephant',  'PH', '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
+
+#   ('bs', 'mineralna voda', 'voda', '\x1b[1mmineralna \x1b[4mvoda\x1b[0m\x1b[1m\x1b[0m'),
+#   ('bs', 'минерална вода', 'voda', '\x1b[0m\x1b[0m\x1b[1mминерална вода\x1b[0m\x1b[0m'),
+
 #   ('sr', 'чокањчиће', 'či',   '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
 #   ('sr', 'чокањчиће', 'njČi', '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
-    ('sr', 'чокањчиће', 'jči',  '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+#   ('sr', 'чокањчиће', 'jči',  '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
 )
 
 @pytest.mark.parametrize('lang, big_foreign, small_roman, highlighted', HIGHLIGHT)
 def test_highlight(lang, big_foreign, small_roman, highlighted):
-    assert highlight(lang, big_foreign, small_roman) == highlighted
+    obs = highlight(lang, big_foreign, small_roman,
+        _tuple=isinstance(highlighted, tuple))
+    assert obs == highlighted

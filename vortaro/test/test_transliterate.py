@@ -19,7 +19,7 @@ import pytest
 from ..transliterate import ALPHABETS
 
 transliterations = (
-#   ('bg', 'общопрактикуваща лекарка', ''),
+    ('bg', 'общопрактикуваща лекарка', 'obštopraktikuvašta lekarka'),
     ('sr', 'чокањчиће', 'čokanjčiće'),
 )
 @pytest.mark.parametrize('original_to_roman', (True, False))
