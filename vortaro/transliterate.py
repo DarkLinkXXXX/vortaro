@@ -35,12 +35,13 @@ class Alphabet(object):
 
 class Mapper(object):
     def __init__(self, alphabet):
-        self._mapping = defaultdict(dict)
+        mapping = defaultdict(dict)
         for k, v in alphabet:
             if not 1 <= len(k) <= 2:
                 raise ValueError('Character is too long: %s' % k)
             left, right = k if len(k) == 2 else (k, '')
-            self._mapping[left][right] = v
+            mapping[left][right] = v
+        self._mapping = dict(mapping)
 
     def __call__(self, word):
         def write(raw, letter):
@@ -50,16 +51,19 @@ class Mapper(object):
         buf = ''
         input = StringIO(word)
         output = StringIO()
+        def options(x):
+            return self._mapping[x.lower()]
         def single_char(x):
-            y = self._mapping[x.lower()]
+            y = options(x)
             try:
                 return y['']
             except KeyError:
-                logger.error(
+                logger.warning(
                     'A multi-character translateration is specified'
                     'without a single-character transliteration,'
                     'and you are trying to use the single-character translateration.'
                 )
+                return x
         while True:
             char = input.read(1)
             if char == '':
@@ -67,8 +71,8 @@ class Mapper(object):
                     write(buf, single_char(buf))
                 break
             elif buf:
-                if char.lower() in self._mapping[buf.lower()]:
-                    write(buf + char, self._mapping[buf.lower()][char.lower()])
+                if char.lower() in options(buf):
+                    write(buf + char, options(buf)[char.lower()])
                     buf = ''
                 elif char.lower() in self._mapping:
                     write(buf + char, single_char(buf))
@@ -80,7 +84,7 @@ class Mapper(object):
             else:
                 if char.lower() not in self._mapping:
                     output.write(char)
-                elif 1 < len(single_char(char)):
+                elif 1 < len(options(char)):
                     buf = char
                 else:
                     output.write(single_char(char))
@@ -121,11 +125,17 @@ ALPHABETS = dict(
         ('я', 'ya'),
     )),
     eo = Alphabet((
+        ('c', 'c'),
         ('ĉ', 'cx'),
+        ('g', 'g'),
         ('ĝ', 'gx'),
+        ('h', 'h'),
         ('ĥ', 'hx'),
+        ('j', 'j'),
         ('ĵ', 'jx'),
+        ('s', 's'),
         ('ŝ', 'sx'),
+        ('u', 'u'),
         ('ŭ', 'ux'),
     )),
     ru = Alphabet((
