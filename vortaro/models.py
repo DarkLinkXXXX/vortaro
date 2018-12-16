@@ -27,7 +27,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CreateColumn
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker, column_property, relationship
+from sqlalchemy.orm import sessionmaker, column_property, relationship, backref
 from sqlalchemy.sql import func
 from sqlalchemy import (
     create_engine, CheckConstraint,
@@ -96,6 +96,7 @@ class File(Base):
         get_pos = table_dict(PartOfSpeech, 'text')
         get_lang = table_dict(Language, 'code')
         file.definitions[:] = []
+
         session.flush()
         for index, pair in enumerate(read(Path(file.path))):
             file.definitions.append(Dictionary(
@@ -136,7 +137,9 @@ Index('language_length', Language.length)
 class Dictionary(Base):
     __tablename__ = 'dictionary'
     file_id = Column(Integer, ForeignKey(File.id), primary_key=True)
-    file = relationship(File, backref='definitions')
+    file = relationship(File,
+        backref=backref('definitions',
+            cascade='save-update, merge, delete, delete-orphan'))
     index = Column(Integer, primary_key=True)
 
     part_of_speech_id = Column(Integer, ForeignKey(PartOfSpeech.id), nullable=False)

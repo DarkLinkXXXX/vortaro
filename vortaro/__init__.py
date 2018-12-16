@@ -117,7 +117,7 @@ def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     session = SessionMaker(database)
     q = session.query(Dictionary).filter(Dictionary.from_word.contains(query))
 
-    q_pos = q \
+    q_lengths = q \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(func.max(PartOfSpeech.length))
     q_from_lang = q \
