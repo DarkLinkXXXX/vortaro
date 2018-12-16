@@ -53,7 +53,7 @@ def download(source: tuple(FORMATS), noindex=False,
 
     :param source: Dictionary source to download from
     :param pathlib.path data_dir: Vortaro data directory
-    :param bool force: Force updating of the index
+    :param bool noindex: Do not update the index
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
@@ -135,15 +135,11 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
-        #   func.max(Dictionary.from_length)+8,
+            func.max(Dictionary.from_length)+8,
             func.max(ToLanguage.length),
         )
     row = q_lengths.one()
     if any(row):
-        # Don't look up from length, because it takes too long.
-        a, b, d = row
-        widths = (a, b, int(len(text)*3)+8, d)
-
         tpl_line = (meta_tpl % widths).replace('\t', '  ')
         for definition in q_main:
             stdout.write(tpl_line % (
