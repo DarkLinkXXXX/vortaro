@@ -21,6 +21,8 @@ from sys import stderr, exit
 
 from .http import simple_download
 
+__all__ = ['download', 'read']
+
 LICENSE = (
     'Please observe the copyrights CC-CEDICT.',
     '''\

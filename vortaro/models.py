@@ -78,11 +78,6 @@ class Format(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False, unique=True)
 
-    _registry = {}
-    @classmethod
-    def register(cls, function):
-        cls._registry[function.__name__] = function
-
 def _mtime(path):
     return int(Path(path).stat().st_mtime)
 
@@ -97,28 +92,16 @@ class File(Base):
     @property
     def out_of_date(self):
         return self.mtime < _mtime(self.path)
-    def update(self, session):
-        def get_pos(pos, *, _cache={}):
-            if pos not in _cache
-                _cache[pos] = get_or_create(PartOfSpeech, text=pos)
-            return _cache[pos]
-        if self.name in self.format._registry:
-            data = enumerate(self.format._registry[self.name](self.path))
-            for index, (pos, source_latin, destination_original) in data:
-                session.add(Dictionary(
-                    file=self, index=index,
-                    part_of_speech=get_pos(pos),
-                    source_latin=source_latin,
-                    destination_original=destination_original,
-                ))
-        self.mtime = _mtime(self.path)
-        session.add(self)
 
 class PartOfSpeech(Base):
     __tablename__ = 'part_of_speech'
     id = Column(Integer, primary_key=True)
     text = Column(String, unique=True, nullable=False)
     length = column_property(func.length(text), index=True)
+
+class Language(Base):
+    id = Column(Integer, primary_key=True)
+    code = Column(String, unique=True, nullable=False)
 
 class Dictionary(Base):
     __tablename__ = 'dictionary'
@@ -129,6 +112,8 @@ class Dictionary(Base):
     part_of_speech_id = Column(Integer, ForeignKey(PartOfSpeech.id), nullable=False)
     part_of_speech = relationship(PartOfSpeech)
 
+    source_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     source_latin = Column(String, nullable=False)
     source_length = column_property(func.length(source_latin), index=True)
+    destination_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     destination_original = Column(String, nullable=False)

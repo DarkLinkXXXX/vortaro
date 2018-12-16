@@ -23,20 +23,15 @@ from functools import partial
 from collections import OrderedDict
 from shutil import get_terminal_size
 
-from redis import StrictRedis
-
 from .render import Table, Stream
-from . import (
-    db,
-    dictcc, cedict, espdic
-)
+from . import models, formats
+
 FORMATS = OrderedDict((
     ('dict.cc', dictcc),
     ('cc-cedict', cedict),
     ('espdic', espdic),
 ))
-DB = 7 # Redis DB number
-
+DATABASE = 'postgresql:///vortaro'
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
 
@@ -47,18 +42,17 @@ def Word(x):
     else:
         return x
 
-def download(source: tuple(FORMATS), force=False, data_dir: Path=DATA,
-             redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
+def download(source: tuple(FORMATS), force=False,
+        data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
 
     :param source: Dictionary source to download from
     :param pathlib.path data_dir: Vortaro data directory
     :param bool force: Force updating of the index
-    :param redis_host: Redis host
-    :param redis_port: Redis port
-    :param redis_db: Redis database number
+    :param database: PostgreSQL database URL
     '''
+    session = models.SessionMaker(database)
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
     FORMATS[source].download(subdir)
@@ -66,37 +60,35 @@ def download(source: tuple(FORMATS), force=False, data_dir: Path=DATA,
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     db.index(con, FORMATS, data_dir)
 
-def index(drop=False, data_dir: Path=DATA,
-          redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
+def index(drop=False,
+        data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
 
     :param pathlib.path data_dir: Vortaro data directory
     :param bool drop: Delete the existing index before indexing.
-    :param redis_host: Redis host
-    :param redis_port: Redis port
-    :param redis_db: Redis database number
+    :param database: PostgreSQL database URL
     '''
+    session = models.SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     if drop:
         con.flushdb()
     db.index(con, FORMATS, data_dir)
 
-def languages(redis_host='localhost', redis_port: int=6379, redis_db: int=DB):
+def languages(database=DATABASE):
     '''
     List from-languages that have been indexed.
 
-    :param redis_host: Redis host
-    :param redis_port: Redis port
-    :param redis_db: Redis database number
+    :param database: PostgreSQL database URL
     '''
+    session = models.SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     for language in db.languages(con):
         print(language)
 
 def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
-           redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
+           database=DATABASE,
            from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
@@ -107,10 +99,9 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
-    :param redis_host: Redis host
-    :param redis_port: Redis port
-    :param redis_db: Redis database number
+    :param database: PostgreSQL database URL
     '''
+    session = models.SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     fmt = partial(Stream, search, width)
 
@@ -125,7 +116,7 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
 def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
           data_dir: Path=DATA,
-          redis_host='localhost', redis_port: int=6379, redis_db: int=DB,
+          database=DATABASE,
           from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries, and format the result as a table.
@@ -136,10 +127,9 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
-    :param redis_host: Redis host
-    :param redis_port: Redis port
-    :param redis_db: Redis database number
+    :param database: PostgreSQL database URL
     '''
+    session = models.SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     t = Table(search)

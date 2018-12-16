@@ -21,6 +21,8 @@ from textwrap import wrap
 from functools import lru_cache
 from shutil import get_terminal_size
 
+__all__ = ['download', 'read']
+
 COLUMNS, ROWS = get_terminal_size((80, 20))
 PAIR = re.compile(rb'# ([A-Z]+)-([A-Z]+) vocabulary database	compiled by dict\.cc$')
 

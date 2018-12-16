@@ -19,6 +19,8 @@ from functools import lru_cache
 
 from .http import simple_download
 
+__all__ = ['download', 'read']
+
 URL = 'http://www.denisowski.org/Esperanto/ESPDIC/espdic.txt'
 FILENAME = URL.split('/')[-1]
 LICENSE = (
