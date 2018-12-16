@@ -130,7 +130,14 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
-    q_lengths = q_main.from_self() \
+
+    # Estimate this one because doing it exactly takes too long.
+    length = func.length(Dictionary.from_word)
+    q_from_length_quantile, = session.query(length).order_by(length).desc() \
+        .offset(session.query(func.count(Dictionary)*quantile).limit(1)) \
+        .scalar()
+
+    q_lengths = q_all.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
             func.max(PartOfSpeech.length),
@@ -157,3 +164,4 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 #       displayed_results=limit,
 #   ))
 #   session.commit()
+
