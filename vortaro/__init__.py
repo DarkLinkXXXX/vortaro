@@ -141,9 +141,8 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         )
     row = q_lengths.one()
     if any(row):
+        # Don't look up from length, because it takes too long.
         a, b, d = row
-
-        # Don't really look up from length, because it takes too long.
         widths = (a, b, int(len(text)*3)+8, d)
 
         tpl_line = (meta_tpl % widths).replace('\t', '  ')
