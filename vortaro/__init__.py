@@ -57,10 +57,9 @@ def download(source: tuple(FORMATS), force=False,
     session = SessionMaker(database)
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
-    FORMATS[source].download(subdir)
-
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    db.index(con, FORMATS, data_dir)
+    format = FORMATS[source]
+    format.download(subdir)
+    _index_subdir(session, format, subdir)
 
 def index(refresh=False,
         data_dir: Path=DATA, database=DATABASE):
@@ -73,14 +72,18 @@ def index(refresh=False,
     '''
     session = SessionMaker(database)
     for name in FORMATS:
-        format = get_or_create(session, Format, name=name)
         directory = data_dir / name
-        if directory.is_dir():
-            for path in directory.iterdir():
-                file = get_or_create(session, File, path=path, format=format)
-                if refresh or file.out_of_date():
-                    update(session, file)
+        if directory.is_dir() and any(f.is_file() for f in directory.iterdir()):
+            format = get_or_create(session, Format, name=name)
+            _index_subdir(session, format, path)
     session.commit()
+
+def _index_subdir(session, format, directory):
+    for path in directory.iterdir():
+        if path.is_file():
+            file = get_or_create(session, File, path=path, format=format)
+            if refresh or file.out_of_date:
+                file.update(session)
 
 def languages(database=DATABASE):
     '''
@@ -119,8 +122,7 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         if i >= limit:
             break
     if i:
-        session.add(
-                db.add_history(data_dir, search)
+        session.add(History(query=search))
 
 def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
           data_dir: Path=DATA,
@@ -138,7 +140,6 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     t = Table(search)
     for definition in db.search(con, from_langs, to_langs, search):
@@ -148,6 +149,6 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     t.sort()
 
     if t:
-        db.add_history(data_dir, search)
+        session.add(History(query=search))
     for row in t.render(width, limit):
         yield row
