@@ -27,7 +27,7 @@ from .models import (
     SessionMaker, get_or_create,
     History, File, Language, PartOfSpeech, Dictionary, Format,
 )
-from .highlight import quiet, HIGHLIGHT_COUNT, QUIET_COUNT
+from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
 from .formats import FORMATS
 
 DATABASE = 'postgresql:///vortaro'
@@ -149,7 +149,7 @@ def search(text: Word, limit: int=ROWS-2, *,
                 quiet(definition.from_lang.code),
                 definition.from_highlight(text),
                 quiet(definition.to_lang.code),
-                definition.to_word,
+                bold(definition.to_word),
             ) + '\n')
             stdout.flush()
 

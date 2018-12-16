@@ -18,12 +18,16 @@ from .transliterate import get_alphabet
 
 UNDERLINE = '\033[4m'
 DIM = '\033[2m'
+BOLD = '\033[1m'
 NORMAL = '\033[0m'
-HIGHLIGHT_COUNT = len(UNDERLINE + NORMAL)
-QUIET_COUNT = len(UNDERLINE + NORMAL)
+HIGHLIGHT_COUNT = len(BOLD + UNDERLINE + NORMAL + BOLD + NORMAL)
+QUIET_COUNT = 0
 
 def quiet(x):
-    return DIM + x + NORMAL
+    return x
+
+def bold(x):
+    return BOLD + x + NORMAL
 
 def highlight(lang, big_foreign, small_roman):
     alphabet = get_alphabet(lang)
@@ -39,6 +43,5 @@ def highlight(lang, big_foreign, small_roman):
         )
         if ''.join(y) == big_foreign:
             a, b, c = y
-            return a + UNDERLINE + b + NORMAL + c
-    return NORMAL + big_foreign + NORMAL
-
+            return BOLD + a + UNDERLINE + b + NORMAL + BOLD + c + NORMAL
+    return NORMAL + NORMAL + BOLD + big_foreign + NORMAL + NORMAL
