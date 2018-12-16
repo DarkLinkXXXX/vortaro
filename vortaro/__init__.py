@@ -22,7 +22,7 @@ from functools import partial
 from collections import OrderedDict
 from shutil import get_terminal_size
 
-from .render import Table, Stream
+# from .render import Table, Stream
 from .models import (
     SessionMaker, get_or_create,
     History, File, Language, Dictionary, Format,
@@ -97,14 +97,14 @@ def languages(database=DATABASE):
     for language, in q.all():
         yield language + '\n'
 
-def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
            database=DATABASE,
            from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
 
-    :param search: The word/fragment you are searching for
+    :param query: The word/fragment you are searching for
     :param limit: Maximum number of words to return
     :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
@@ -112,18 +112,27 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param pathlib.Path data_dir: Vortaro data directory
     :param database: PostgreSQL database URL
     '''
+    widths = (16, 8, 28, 8)
+    tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths
+    tpl_line = tpl_line.replace('\t', '   ')
     session = SessionMaker(database)
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    fmt = partial(Stream, search, width)
 
+    q = session.query(Dictionary) \
+        .filter(Dictionary.from_word.contains(query))
     i = 0
-    for definition in db.search(con, from_langs, to_langs, search):
+    for definition in q.all():
         i += 1
-        yield fmt(definition)
+        yield (tpl_line % (
+            definition.part_of_speech,
+            definition.from_lang,
+            highlight(definition.from_lang, definition.from_word, search),
+            definition.to_lang,
+            definition.to_word,
+        )) + '\n'
         if i >= limit:
             break
     if i:
-        session.add(History(query=search))
+        session.add(History(query=query))
 
 def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
           data_dir: Path=DATA,

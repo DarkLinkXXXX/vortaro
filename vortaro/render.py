@@ -100,17 +100,3 @@ def _widths(results):
         for i, cell in enumerate(row[:-1]):
             widths[i] = max(widths[i], len(cell))
     return widths
-
-def Stream(search, cols, result):
-    widths = (16, 8, 28, 8)
-    tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths
-    tpl_line = tpl_line.replace('\t', '   ')
-
-    formatted = tpl_line % (
-        result['part_of_speech'],
-        result['from_lang'],
-        highlight(result['from_lang'], result['from_word'], search),
-        result['to_lang'],
-        result['to_word'],
-    )
-    return formatted + '\n'

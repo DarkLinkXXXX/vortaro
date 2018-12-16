@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import download, index, table, stream, languages
+from . import download, index, search, languages
 import horetu
 
 def ui():
@@ -22,5 +22,5 @@ def ui():
         languages,
         index,
         download,
-        table, stream,
+        search,
     ], name='vortaro'))
