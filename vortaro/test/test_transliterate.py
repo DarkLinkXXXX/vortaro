@@ -27,6 +27,7 @@ transliterations = (
 @pytest.mark.parametrize('language_code, original, roman', transliterations)
 def test_highlight(original_to_roman, language_code, original, roman):
     alphabet = ALPHABETS[language_code]
+    print(alphabet, alphabet.to_roman)
     if original_to_roman:
         assert alphabet.to_roman(original) == roman
     else:

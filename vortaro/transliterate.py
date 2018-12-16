@@ -24,26 +24,22 @@ def get_alphabet(code):
 
 class Alphabet(object):
     def __init__(self, alphabet):
-        self._to_roman = alphabet
-        self._from_roman = tuple((v,k) for (k,v) in alphabet)
-
+        self._alphabet = alphabet
+        self.to_roman = Mapper(alphabet)
+        self.from_roman = Mapper(tuple((v,k) for (k,v) in alphabet))
     def __repr__(self):
-        return 'Alphabet(%s)' % repr(self._to_roman)
-    def to_roman(self, word):
-        return self._convert(self._to_roman, word)
-    def from_roman(self, word):
-        return self._convert(self._from_roman, word)
+        return 'Alphabet(%s)' % repr(self._alphabet)
 
-    @staticmethod
-    def _convert(alphabet, word):
-        mapping = defaultdict(dict)
+class Mapper(object):
+    def __init__(self, alphabet):
+        self._mapping = defaultdict(dict)
         for k, v in alphabet:
             if not 1 <= len(k) <= 2:
                 raise ValueError('Character is too long: %s' % k)
             left, right = k if len(k) == 2 else (k, '')
-            mapping[left][right] = v
-        
+            self._mapping[left][right] = v
 
+    def __call__(self, word):
         def write(raw, letter):
             upper = any(char.upper() == char and char.lower() != char for char in raw)
             output.write(letter.upper() if upper else letter.lower())
@@ -55,26 +51,27 @@ class Alphabet(object):
             char = input.read(1)
             if char == '':
                 if buf:
-                    write(buf, mapping[buf.lower()][''])
+                    write(buf, self._mapping[buf.lower()][''])
                 break
             elif buf:
-                if char.lower() in mapping[buf.lower()]:
-                    write(buf + char, mapping[buf.lower()][char.lower()])
+                if char.lower() in self._mapping[buf.lower()]:
+                    write(buf + char, self._mapping[buf.lower()][char.lower()])
                     buf = ''
-                elif char.lower() in mapping:
-                    write(buf + char, mapping[buf.lower()][''])
+                elif char.lower() in self._mapping:
+                    write(buf + char, self._mapping[buf.lower()][''])
                     buf = char
                 else:
-                    write(buf, mapping[buf.lower()][''])
+                    write(buf, self._mapping[buf.lower()][''])
                     output.write(char)
                     buf = ''
             else:
-                if char.lower() not in mapping:
+                if char.lower() not in self._mapping:
                     output.write(char)
-                elif 1 < len(mapping[char.lower()]):
+                elif 1 < len(self._mapping[char.lower()]):
                     buf = char
                 else:
-                    output.write(mapping[char.lower()][''])
+                    print((output.getvalue(), buf, char, word))
+                    output.write(self._mapping[char.lower()][''])
         return output.getvalue()
 
 IDENTITY = Alphabet(())
