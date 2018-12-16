@@ -19,10 +19,14 @@ import pytest
 from ..transliterate import ALPHABETS
 
 transliterations = (
-    ('bg', 'общопрактикуваща лекарка', ''),
+#   ('bg', 'общопрактикуваща лекарка', ''),
+    ('sr', 'чокањчиће', 'čokanjčiće'),
 )
+@pytest.mark.parametrize('original_to_roman', (True, False))
 @pytest.mark.parametrize('language_code, original, roman', transliterations)
-def test_highlight(language_code, original, roman):
+def test_highlight(original_to_roman, language_code, original, roman):
     alphabet = ALPHABETS[language_code]
-#   yield alphabet.from_roman(roman) == original
-#   yield alphabet.to_roman(original) == roman
+    if original_to_roman:
+        assert alphabet.to_roman(original) == roman
+    else:
+        assert alphabet.from_roman(roman) == original
