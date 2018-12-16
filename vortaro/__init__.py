@@ -117,8 +117,12 @@ def search(text: Word, limit: int=ROWS-2, *,
         q_joins = q_joins.filter(FromLanguage.code.in_(from_langs))
     if to_langs:
         q_joins = q_joins.filter(ToLanguage.code.in_(to_langs))
+    ltext = text.lower()
     q_all = q_joins \
-        .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
+        .filter(or_(
+            func.lower(Dictionary.from_roman_transliteration).contains(ltext),
+            func.lower(Dictionary.from_roman_original).contains(ltext),
+        ))
     q_main = q_all \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .order_by(

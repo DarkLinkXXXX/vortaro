@@ -29,12 +29,11 @@ def quiet(x):
 def bold(x):
     return BOLD + x + NORMAL
 
-def highlight(lang, big_foreign, small_roman, _tuple=False):
+def highlight(language_code, big_foreign, big_roman, small_roman, _tuple=False):
     '''
     :param bool _tuple: Return a tuple for testing
     '''
-    alphabet = get_alphabet(lang)
-    big_roman = alphabet.to_roman(big_foreign)
+    alphabet = get_alphabet(language_code)
     if small_roman.lower() in big_roman.lower():
         left = big_roman.lower().index(small_roman.lower())
         right = left + len(small_roman)

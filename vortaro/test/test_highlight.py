@@ -18,26 +18,39 @@ import pytest
 from ..highlight import highlight
 
 HIGHLIGHT = (
-    ('en', 'elephant',  'PH', ('ele', 'ph', 'ant')),
-    ('en', 'elephant',  'PH', '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
+    ('en', 'elephant', 'elephant', 'PH',
+        ('ele', 'ph', 'ant')),
+    ('en', 'elephant', 'elephant', 'PH',
+        '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
 
-    ('bg', 'минерална вода', 'voda', ('минерална ', 'вода', '')),
-#   ('bg', 'минерална вода', 'voda', '\x1b[0m\x1b[0m\x1b[1mминерална вода\x1b[0m\x1b[0m'),
-#   ('bg', 'минерална вода', 'voda', '\033[1mминерална \033[4mвода\033[1m\033[0m'),
+    ('bg', 'минерална вода', 'mineralna voda', 'voda',
+        ('минерална ', 'вода', '')),
+#   ('bg', 'минерална вода', 'mineralna voda', 'voda',
+#       '\x1b[0m\x1b[0m\x1b[1mминерална вода\x1b[0m\x1b[0m'),
+#   ('bg', 'минерална вода', 'mineralna voda', 'voda',
+#       '\033[1mминерална \033[4mвода\033[1m\033[0m'),
 
-    ('bs', 'mineralna voda', 'voda', ('mineralna ', 'voda', '')),
-    ('bs', 'mineralna voda', 'voda', '\x1b[1mmineralna \x1b[4mvoda\x1b[0m\x1b[1m\x1b[0m'),
+    ('bs', 'mineralna voda', 'mineralna voda', 'voda',
+        ('mineralna ', 'voda', '')),
+    ('bs', 'mineralna voda', 'mineralna voda', 'voda',
+        '\x1b[1mmineralna \x1b[4mvoda\x1b[0m\x1b[1m\x1b[0m'),
 
-    ('sr', 'чокањчиће', 'či',   ('чокањ', 'чи', 'ће')),
-#   ('sr', 'чокањчиће', 'či',   '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
-    ('sr', 'чокањчиће', 'njČi', ('чока', 'њчи', 'ће')),
-#   ('sr', 'чокањчиће', 'njČi', '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
-    ('sr', 'чокањчиће', 'jči',  ('', 'чокањчиће', '')),
-#   ('sr', 'чокањчиће', 'jči',  '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+    ('sr', 'чокањчиће', 'čokanjčiće', 'či',
+        ('чокањ', 'чи', 'ће')),
+#   ('sr', 'чокањчиће', 'či', 
+#       '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+    ('sr', 'чокањчиће', 'čokanjčiće', 'njČi',
+        ('чока', 'њчи', 'ће')),
+#   ('sr', 'чокањчиће', 'čokanjčiće', 'njČi',
+#       '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+    ('sr', 'чокањчиће', 'čokanjčiće', 'jči',
+        ('', 'чокањчиће', '')),
+#   ('sr', 'чокањчиће', 'čokanjčiće', 'jči',
+#       '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
 )
 
-@pytest.mark.parametrize('lang, big_foreign, small_roman, highlighted', HIGHLIGHT)
-def test_highlight(lang, big_foreign, small_roman, highlighted):
-    obs = highlight(lang, big_foreign, small_roman,
+@pytest.mark.parametrize('lang, big_foreign, big_roman, small_roman, highlighted', HIGHLIGHT)
+def test_highlight(lang, big_foreign, big_roman, small_roman, highlighted):
+    obs = highlight(lang, big_foreign, big_roman, small_roman,
         _tuple=isinstance(highlighted, tuple))
     assert obs == highlighted
