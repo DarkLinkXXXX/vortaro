@@ -144,7 +144,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         a, b, d = row
 
         # Don't really look up from length, because it takes too long.
-        widths = (a, b, int(len(text)*5/3), d)
+        widths = (a, b, int(len(text)*3)+8, d)
 
         tpl_line = (meta_tpl % widths).replace('\t', '  ')
         for definition in q_main:
