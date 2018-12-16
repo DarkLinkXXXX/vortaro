@@ -2,16 +2,16 @@
 # Copyright (C) 2017  Thomas Levine
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Affero General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from distutils.core import setup
@@ -22,12 +22,15 @@ setup(name='vortaro',
       description='Query bilingual dictionaries.',
       url='https://thomaslevine.com/scm/vortaro/',
       packages=['vortaro'],
-      install_requires=['horetu>=0.4.1', 'redis>=2.10.6'],
+      install_requires=[
+          'horetu>=0.4.1',
+          'SQLAlchemy>=1.2.11',
+      ],
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
-      version='0.3.1',
-      license='GPL',
+      version='1.0.0',
+      license='AGPL',
       entry_points = {
           'console_scripts': ['vortaro = vortaro.ui:ui']
       },
