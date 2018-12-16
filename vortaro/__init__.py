@@ -117,6 +117,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
     q_joins = session.query(Dictionary) \
+        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
         .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id)
     if from_langs:
@@ -125,13 +126,19 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         q_joins = q_joins.filter(ToLanguage.code.in_(to_langs))
     q_all = q_joins \
         .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
-    q_main = q_all.order_by(Dictionary.from_length).limit(limit)
+    q_main = q_all.order_by(
+        Dictionary.from_length,
+        PartOfSpeech.text,
+        Dictionary.from_word,
+        Dictionary.to_word,
+        FromLanguage.code,
+        ToLanguage.code,
+    ).limit(limit)
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
 
     q_lengths = q_main.from_self() \
-        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
