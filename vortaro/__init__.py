@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from sys import stdout
 from os import environ, makedirs
 from pathlib import Path
 from collections import OrderedDict
@@ -93,7 +94,7 @@ def languages(database=DATABASE):
     session = SessionMaker(database)
     q = session.query(Language.code).order_by(Language.code)
     for language, in q.all():
-        yield language
+        stdout.write(language + '\n')
 
 def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
@@ -136,13 +137,13 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     if q.count():
         tpl_line = (meta_tpl % q_lengths.one()).replace('\t', '  ')
         for definition in q.all():
-            yield (tpl_line % (
+            stdout.write(tpl_line % (
                 definition.part_of_speech.text,
                 definition.from_lang.code,
                 definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
                 definition.to_lang.code,
                 definition.to_word,
-            ))
+            ) + '\n')
 
 #   all_languages = session.query(Language.code)
     session.add(History(
