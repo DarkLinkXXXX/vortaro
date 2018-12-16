@@ -15,7 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from collections import defaultdict
+from functools import lru_cache
 from io import StringIO
+
+@lru_cache(None)
+def get_alphabet(code):
+    return ALPHABETS.get(code, IDENTITY)
 
 class Alphabet(object):
     def __init__(self, alphabet):

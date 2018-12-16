@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from pathlib import Path
-from functools import lru_cache
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
@@ -29,15 +28,6 @@ from sqlalchemy import (
     Column, ForeignKey, Index,
     String, Integer, DateTime,
 )
-
-from .transliterate import ALPHABETS, IDENTITY
-
-@lru_cache(None)
-def get_alphabet(code):
-    return ALPHABETS.get(code, IDENTITY)
-
-UNDERLINE = '\033[4m'
-NORMAL = '\033[0m'
 
 Base = declarative_base()
 
@@ -172,23 +162,6 @@ class Dictionary(Base):
     to_word = Column(String, nullable=False)
 
     def to_highlight(self, search):
-        alphabet = ALPHABETS.get(self.to_lang.code, IDENTITY)
-        big_foreign = self.to_word
-        big_roman = alphabet.to_roman(big_foreign)
-        small_roman = search
-
-        if small_roman.lower() in big_roman.lower():
-            left = big_roman.lower().index(small_roman.lower())
-            right = left + len(small_roman)
-            
-            y = (
-                alphabet.from_roman(big_roman[:left]),
-                alphabet.from_roman(big_roman[left:right]),
-                alphabet.from_roman(big_roman[right:]),
-            )
-            if ''.join(y) == big_foreign:
-                a, b, c = y
-                return a + UNDERLINE + b + NORMAL + c
-        return big_foreign + NORMAL + NORMAL
+        return _highlight(self.to_lang.code, self.to_word, search)
 
 Index('from_length', Dictionary.from_length)
