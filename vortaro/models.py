@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from pathlib import Path
+from functools import lru_cache
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
@@ -28,6 +29,15 @@ from sqlalchemy import (
     Column, ForeignKey, Index,
     String, Integer, DateTime,
 )
+
+from .transliterate import ALPHABETS, IDENTITY
+
+@lru_cache(None)
+def get_alphabet(code):
+    return ALPHABETS.get(code, IDENTITY)
+
+UNDERLINE = '\033[4m'
+NORMAL = '\033[0m'
 
 Base = declarative_base()
 
@@ -93,19 +103,25 @@ class File(Base):
         get_pos = table_dict(PartOfSpeech, 'text')
         get_lang = table_dict(Language, 'code')
         file.definitions[:] = []
-
         session.flush()
         for index, pair in enumerate(read(Path(file.path))):
+            alphabet = get_alphabet(pair['from_lang'])
+            from_orig = pair['from_word']
+            from_roman = alphabet.to_roman(pair['from_word'])
+            if from_orig == from_roman:
+                from_roman = None
             file.definitions.append(Dictionary(
                 file=file, index=index,
                 part_of_speech=get_pos(session, pair.get('part_of_speech', '')),
                 from_lang=get_lang(session, pair['from_lang']),
-                from_word=pair['from_word'],
+                from_word=from_orig,
+                from_roman=from_roman,
                 to_lang=get_lang(session, pair['to_lang']),
                 to_word=pair['to_word'],
             ))
         file.mtime = _mtime(file.path)
         session.add(file)
+        session.commit()
 
 class table_dict(object):
     def __init__(self, Model, key):
@@ -145,8 +161,34 @@ class Dictionary(Base):
     from_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     from_lang = relationship(Language, foreign_keys=[from_lang_id])
     from_word = Column(String, nullable=False)
+
+    from_roman_transliteration = Column(String, nullable=True)
+    CheckConstraint('from_word != from_roman_transliteration')
+    from_roman = column_property(func.coalesce(from_roman_transliteration, from_word))
     from_length = column_property(func.length(from_word))
+
     to_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     to_lang = relationship(Language, foreign_keys=[to_lang_id])
     to_word = Column(String, nullable=False)
+
+    def to_highlight(self, search):
+        alphabet = ALPHABETS.get(self.to_lang.code, IDENTITY)
+        big_foreign = self.to_word
+        big_roman = alphabet.to_roman(big_foreign)
+        small_roman = search
+
+        if small_roman.lower() in big_roman.lower():
+            left = big_roman.lower().index(small_roman.lower())
+            right = left + len(small_roman)
+            
+            y = (
+                alphabet.from_roman(big_roman[:left]),
+                alphabet.from_roman(big_roman[left:right]),
+                alphabet.from_roman(big_roman[right:]),
+            )
+            if ''.join(y) == big_foreign:
+                a, b, c = y
+                return a + UNDERLINE + b + NORMAL + c
+        return big_foreign + NORMAL + NORMAL
+
 Index('from_length', Dictionary.from_length)

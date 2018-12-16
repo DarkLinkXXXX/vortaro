@@ -117,7 +117,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     q_all = session.query(Dictionary) \
         .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
         .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id) \
-        .filter(Dictionary.from_word.contains(text))
+        .filter(Dictionary.from_roman.contains(text))
     if from_langs:
         q_all = q_all.filter(FromLanguage.code.in_(from_langs))
     if to_langs:
@@ -142,7 +142,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
                 definition.from_lang.code,
                 definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
                 definition.to_lang.code,
-                definition.to_word,
+                definition.to_highlight(text),
             ) + '\n')
 
 #   all_languages = session.query(Language.code)
