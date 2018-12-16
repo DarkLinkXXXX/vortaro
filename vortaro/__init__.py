@@ -144,13 +144,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         a, b, d = row
 
         # Don't really look up from length, because it takes too long.
-        c_max = int((width - sum(row) + 8) / 2)
-        quantile = 1 - min(1, len(text)/limit)
-        length = func.length(Dictionary.from_word)
-        subq =session.query(length).filter(length > len(text))
-        offset = max(0, int(subq.count()*quantile-1))
-        c_quantile = subq.order_by(length).offset(offset).limit(1).scalar()
-        widths = (a, b, min(c_quantile, c_max), d)
+        widths = (a, b, int(len(text)*5/3), d)
 
         tpl_line = (meta_tpl % widths).replace('\t', '  ')
         for definition in q_main:
