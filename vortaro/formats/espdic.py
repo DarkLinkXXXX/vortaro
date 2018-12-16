@@ -49,25 +49,22 @@ def read(path):
     with path.open() as fp:
         next(fp)
         for rawline in fp:
-            l, r = rawline[:-1].split(' : ')
-            yield {
-                'search_phrase': l,
-                'part_of_speech': _part_of_speech(l[-2:]),
-
-                'from_lang': 'eo',
-                'from_word': l,
-                'to_lang': 'en',
-                'to_word': r,
-            }
-            yield {
-                'search_phrase': r,
-                'part_of_speech': _part_of_speech(l[-2:]),
-
-                'from_lang': 'en',
-                'from_word': r,
-                'to_lang': 'eo',
-                'to_word': l,
-            }
+            l, rs = rawline[:-1].split(' : ')
+            for r in rs.split(', '):
+                yield {
+                    'part_of_speech': _part_of_speech(l[-2:]),
+                    'from_lang': 'eo',
+                    'from_word': l,
+                    'to_lang': 'en',
+                    'to_word': r,
+                }
+                yield {
+                    'part_of_speech': _part_of_speech(l[-2:]),
+                    'from_lang': 'en',
+                    'from_word': r,
+                    'to_lang': 'eo',
+                    'to_word': l,
+                }
 
 POS = (
     ('noun', ('o', 'oj')),
