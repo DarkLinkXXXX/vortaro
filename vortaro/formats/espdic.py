@@ -34,7 +34,6 @@ def download(directory):
     file = (directory / FILENAME)
     if file.exists():
         stderr.write('ESPDIC is already downloaded.\n')
-        exit(1)
     else:
         body = simple_download(URL, LICENSE, directory)
         with file.open('wb') as fp:

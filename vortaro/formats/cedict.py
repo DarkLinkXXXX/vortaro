@@ -41,7 +41,6 @@ def download(directory):
     file = (directory / FILENAME)
     if file.exists():
         stderr.write('CC-CEDICT is already downloaded.\n')
-        exit(1)
     else:
         body = decompress(simple_download(URL, LICENSE, directory))
         with file.open('wb') as fp:
@@ -71,7 +70,6 @@ def read(path):
                 base = {
                     'from_lang': 'en',
                     'from_word': english,
-                    'search_phrase': english,
                 }
                 yield dict(**base, **{
                     'to_lang': 'zh',
@@ -87,12 +85,10 @@ def read(path):
                     'to_word': english,
                 }
                 yield dict(**base, **{
-                    'search_phrase': pinyin,
                     'from_lang': 'zh',
                     'from_word': '%s [%s]' % (traditional, ppinyin),
                 })
                 yield dict(**base, **{
-                    'search_phrase': pinyin,
                     'from_lang': 'zh_CN',
                     'from_word': '%s [%s]' % (simplified, ppinyin),
                 })

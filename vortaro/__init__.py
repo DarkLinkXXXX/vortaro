@@ -23,6 +23,7 @@ from collections import OrderedDict
 from shutil import get_terminal_size
 
 from sqlalchemy.sql import func
+from sqlalchemy.orm import aliased
 
 # from .render import Table, Stream
 from .models import (
@@ -47,7 +48,7 @@ def Word(x):
     else:
         return x
 
-def download(source: tuple(FORMATS), force=False,
+def download(source: tuple(FORMATS), noindex=False,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
@@ -60,9 +61,8 @@ def download(source: tuple(FORMATS), force=False,
     session = SessionMaker(database)
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
-    format = FORMATS[source]
-    format.download(subdir)
-    _index_subdir(session, refresh, format, subdir)
+    FORMATS[source].download(subdir)
+    _index_subdir(session, not noindex, source, subdir)
 
 def index(refresh=False,
         data_dir: Path=DATA, database=DATABASE):
@@ -77,13 +77,13 @@ def index(refresh=False,
     for name in FORMATS:
         directory = data_dir / name
         if directory.is_dir() and any(f.is_file() for f in directory.iterdir()):
-            format = get_or_create(session, Format, name=name)
-            _index_subdir(session, refresh, format, directory)
+            _index_subdir(session, refresh, directory.name, directory)
     session.commit()
 
-def _index_subdir(session, refresh, format, directory):
+def _index_subdir(session, refresh, format_name, directory):
     for path in directory.iterdir():
         if path.is_file():
+            format = get_or_create(session, Format, name=format_name)
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session)
@@ -99,14 +99,14 @@ def languages(database=DATABASE):
     for language, in q.all():
         yield language
 
-def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
            database=DATABASE,
            from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
 
-    :param query: The word/fragment you are searching for
+    :param text: The word/fragment you are searching for
     :param limit: Maximum number of words to return
     :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
@@ -115,41 +115,48 @@ def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    q = session.query(Dictionary).filter(Dictionary.from_word.contains(query))
+    ToLanguage = aliased(Language)
+    FromLanguage = aliased(Language)
+    q_all = session.query(Dictionary) \
+        .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
+        .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id) \
+        .filter(Dictionary.from_word.contains(text))
+    if from_langs:
+        q_all = q_all.filter(FromLanguage.code.in_(from_langs))
+    if to_langs:
+        q_all = q_all.filter(ToLanguage.code.in_(to_langs))
+    q = q_all.limit(limit)
 
-    q_lengths = q \
+    # Determine column widths
+    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
+    q_lengths = q.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
-        .with_entities(func.max(PartOfSpeech.length))
-    q_from_lang = q \
-        .join(Language, Dictionary.from_lang_id == Language.id) \
-        .with_entities(func.max(Language.length))
-    q_to_lang = q \
-        .join(Language, Dictionary.to_lang_id == Language.id) \
-        .with_entities(func.max(Language.length))
-    q_search = q \
-        .with_entities(func.max(Dictionary.from_length))
-    widths = (
-        q_pos.scalar(),
-        q_from_lang.scalar(),
-        q_search.scalar(),
-        q_to_lang.scalar(),
-    )
-    tpl_line = ('%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths) \
-        .replace('\t', '  ')
-    i = 0
-    for definition in q.all():
-        i += 1
-        yield (tpl_line % (
-            definition.part_of_speech.text,
-            definition.from_lang.code,
-            definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
-            definition.to_lang.code,
-            definition.to_word,
-        ))
-        if i >= limit:
-            break
-    if i:
-        session.add(History(query=query))
+        .with_entities(
+            func.max(PartOfSpeech.length),
+            func.max(FromLanguage.length),
+            func.max(Dictionary.from_length),
+            func.max(ToLanguage.length),
+        )
+    if q.count():
+        tpl_line = (meta_tpl % q_lengths.one()).replace('\t', '  ')
+        for definition in q.all():
+            yield (tpl_line % (
+                definition.part_of_speech.text,
+                definition.from_lang.code,
+                definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
+                definition.to_lang.code,
+                definition.to_word,
+            ))
+
+#   all_languages = session.query(Language.code)
+    session.add(History(
+        text=text,
+#       from_langs=from_langs,
+#       to_langs=to_langs,
+        total_results=q_all.count(),
+        displayed_results=limit,
+    ))
+    session.commit()
 
 def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
           data_dir: Path=DATA,

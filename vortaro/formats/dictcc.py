@@ -56,24 +56,22 @@ def read(path):
                     continue
                 else:
                     in_header = False
+            cells = rawline[:-1].split('\t')
             try:
-                left_word, right_word, pos = rawline[:-1].split('\t')
+                left_word, right_word, pos, *_ = cells
             except Exception as e:
-                stderr.write('%s\n' % e)
+                stderr.write('Could not parse: %s\n' % repr(rawline))
+                stderr.write('%s: %s\n' % (e, repr(cells)))
             else:
                 yield {
-                    'search_phrase': _truncate(left_word),
                     'part_of_speech': pos,
-
                     'from_lang': left_lang,
                     'from_word': _truncate(left_word),
                     'to_lang': right_lang,
                     'to_word': right_word,
                 }
                 yield {
-                    'search_phrase': _truncate(right_word),
                     'part_of_speech': pos,
-
                     'from_lang': right_lang,
                     'from_word': _truncate(right_word),
                     'to_lang': left_lang,
