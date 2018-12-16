@@ -105,15 +105,14 @@ class File(Base):
         file.definitions[:] = []
         session.flush()
         if file.format.name in registry:
-            data = enumerate(registry[file.format.name](file.path))
-            for index, (pos, source_lang, source_latin, destination_lang, destination_original) in data:
+            for index, pair in enumerate(registry[file.format.name](file.path)):
                 file.definitions.append(Dictionary(
                     file=file, index=index,
-                    part_of_speech=get_pos(pos),
-                    source_lang=get_lang(source_lang),
-                    source_latin=source_latin,
-                    destination_lang=get_lang(destination_lang),
-                    destination_original=destination_original,
+                    part_of_speech=get_pos(pair['part_of_speech']),
+                    source_lang=get_lang(pair['from_lang']),
+                    source_phrase=pair['from_word'],
+                    destination_lang=get_lang(pair['to_lang']),
+                    destination_phrase=pair['to_word'],
                 ))
         file.mtime = _mtime(file.path)
         session.add(file)
@@ -138,7 +137,9 @@ class Dictionary(Base):
     part_of_speech = relationship(PartOfSpeech)
 
     source_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
-    source_latin = Column(String, nullable=False)
-    source_length = column_property(func.length(source_latin), index=True)
+    source_lang = relationship(Language, foreign_keys=[source_lang_id])
+    source_phrase = Column(String, nullable=False)
+    source_length = column_property(func.length(source_phrase), index=True)
     destination_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
-    destination_original = Column(String, nullable=False)
+    destination_lang = relationship(Language, foreign_keys=[destination_lang_id])
+    destination_phrase = Column(String, nullable=False)
