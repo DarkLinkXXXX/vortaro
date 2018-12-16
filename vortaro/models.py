@@ -130,6 +130,8 @@ class Language(Base):
     __tablename__ = 'language'
     id = Column(Integer, primary_key=True)
     code = Column(String, unique=True, nullable=False)
+    length = column_property(func.length(code))
+Index('language_length', Language.length)
 
 class Dictionary(Base):
     __tablename__ = 'dictionary'

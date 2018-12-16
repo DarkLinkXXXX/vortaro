@@ -22,10 +22,12 @@ from functools import partial
 from collections import OrderedDict
 from shutil import get_terminal_size
 
+from sqlalchemy.sql import func
+
 # from .render import Table, Stream
 from .models import (
     SessionMaker, get_or_create,
-    History, File, Language, Dictionary, Format,
+    History, File, Language, PartOfSpeech, Dictionary, Format,
 )
 from . import models, formats
 
@@ -93,9 +95,9 @@ def languages(database=DATABASE):
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    q = session.query(Language.name).order_by(Language.name)
+    q = session.query(Language.code).order_by(Language.code)
     for language, in q.all():
-        yield language + '\n'
+        yield language
 
 def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
@@ -112,23 +114,38 @@ def search(query: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param pathlib.Path data_dir: Vortaro data directory
     :param database: PostgreSQL database URL
     '''
-    widths = (16, 8, 28, 8)
-    tpl_line = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths
-    tpl_line = tpl_line.replace('\t', '   ')
     session = SessionMaker(database)
+    q = session.query(Dictionary).filter(Dictionary.from_word.contains(query))
 
-    q = session.query(Dictionary) \
-        .filter(Dictionary.from_word.contains(query))
+    q_pos = q \
+        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
+        .with_entities(func.max(PartOfSpeech.length))
+    q_from_lang = q \
+        .join(Language, Dictionary.from_lang_id == Language.id) \
+        .with_entities(func.max(Language.length))
+    q_to_lang = q \
+        .join(Language, Dictionary.to_lang_id == Language.id) \
+        .with_entities(func.max(Language.length))
+    q_search = q \
+        .with_entities(func.max(Dictionary.from_length))
+    widths = (
+        q_pos.scalar(),
+        q_from_lang.scalar(),
+        q_search.scalar(),
+        q_to_lang.scalar(),
+    )
+    tpl_line = ('%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s' % widths) \
+        .replace('\t', '  ')
     i = 0
     for definition in q.all():
         i += 1
         yield (tpl_line % (
-            definition.part_of_speech,
-            definition.from_lang,
-            highlight(definition.from_lang, definition.from_word, search),
-            definition.to_lang,
+            definition.part_of_speech.text,
+            definition.from_lang.code,
+            definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
+            definition.to_lang.code,
             definition.to_word,
-        )) + '\n'
+        ))
         if i >= limit:
             break
     if i:
