@@ -85,7 +85,7 @@ class File(Base):
     __tablename__ = 'file'
     id = Column(Integer, primary_key=True)
     path = Column(String, unique=True)
-    mtime = Column(Integer, nullable=False)
+    mtime = Column(Integer, nullable=False, default=datetime.datetime)
     format_id = Column(ForeignKey(Format.id), nullable=False)
     format = relationship(Format)
 
@@ -106,7 +106,7 @@ class Language(Base):
 class Dictionary(Base):
     __tablename__ = 'dictionary'
     file_id = Column(Integer, ForeignKey(File.id), primary_key=True)
-    file = relationship(File)
+    file = relationship(File, backref='definitions')
     index = Column(Integer, primary_key=True)
 
     part_of_speech_id = Column(Integer, ForeignKey(PartOfSpeech.id), nullable=False)

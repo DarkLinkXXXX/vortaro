@@ -16,7 +16,6 @@
 
 from shlex import split
 from os import environ, makedirs
-from sys import stdin, stdout, stderr, exit
 from pathlib import Path
 from itertools import product
 from functools import partial
@@ -24,6 +23,9 @@ from collections import OrderedDict
 from shutil import get_terminal_size
 
 from .render import Table, Stream
+from .models import (
+    SessionMaker, History, File, Language, Dictionary,
+)
 from . import models, formats
 
 FORMATS = OrderedDict((
@@ -52,7 +54,7 @@ def download(source: tuple(FORMATS), force=False,
     :param bool force: Force updating of the index
     :param database: PostgreSQL database URL
     '''
-    session = models.SessionMaker(database)
+    session = SessionMaker(database)
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
     FORMATS[source].download(subdir)
@@ -60,20 +62,25 @@ def download(source: tuple(FORMATS), force=False,
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     db.index(con, FORMATS, data_dir)
 
-def index(drop=False,
+def index(refresh=False,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
 
     :param pathlib.path data_dir: Vortaro data directory
-    :param bool drop: Delete the existing index before indexing.
+    :param bool refresh: Replace the existing index.
     :param database: PostgreSQL database URL
     '''
-    session = models.SessionMaker(database)
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    if drop:
-        con.flushdb()
-    db.index(con, FORMATS, data_dir)
+    session = SessionMaker(database)
+    for name in FORMATS:
+        format = get_or_create(session, Format, name=name)
+        directory = data_dir / name
+        if directory.is_dir():
+            for path in directory.iterdir():
+                file = get_or_create(session, File, path=path, format=format)
+                if refresh or file.out_of_date():
+                    update(session, file)
+    session.commit()
 
 def languages(database=DATABASE):
     '''
@@ -81,10 +88,10 @@ def languages(database=DATABASE):
 
     :param database: PostgreSQL database URL
     '''
-    session = models.SessionMaker(database)
-    con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
-    for language in db.languages(con):
-        print(language)
+    session = SessionMaker(database)
+    q = session.query(Language.name).order_by(Language.name)
+    for language, in q.all():
+        yield language + '\n'
 
 def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
            data_dir: Path=DATA,
@@ -101,18 +108,19 @@ def stream(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param pathlib.Path data_dir: Vortaro data directory
     :param database: PostgreSQL database URL
     '''
-    session = models.SessionMaker(database)
+    session = SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
     fmt = partial(Stream, search, width)
 
     i = 0
     for definition in db.search(con, from_langs, to_langs, search):
         i += 1
-        stdout.write(fmt(definition))
+        yield fmt(definition)
         if i >= limit:
             break
     if i:
-        db.add_history(data_dir, search)
+        session.add(
+                db.add_history(data_dir, search)
 
 def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
           data_dir: Path=DATA,
@@ -129,7 +137,7 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     :param pathlib.Path data_dir: Vortaro data directory
     :param database: PostgreSQL database URL
     '''
-    session = models.SessionMaker(database)
+    session = SessionMaker(database)
     con = StrictRedis(host=redis_host, port=redis_port, db=redis_db)
 
     t = Table(search)
@@ -142,4 +150,4 @@ def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     if t:
         db.add_history(data_dir, search)
     for row in t.render(width, limit):
-        stdout.write(row)
+        yield row
