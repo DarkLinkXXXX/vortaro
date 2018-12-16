@@ -128,11 +128,11 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
     q_main = q_all.order_by(
         Dictionary.from_length,
-        PartOfSpeech.text,
+        Dictionary.part_of_speech_id, # PartOfSpeech.text,
         Dictionary.from_word,
         Dictionary.to_word,
-        FromLanguage.code,
-        ToLanguage.code,
+#       FromLanguage.code,
+#       ToLanguage.code,
     ).limit(limit)
 
     # Determine column widths
