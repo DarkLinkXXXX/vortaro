@@ -176,7 +176,12 @@ class Dictionary(Base):
     from_roman = column_property(func.coalesce(from_roman_transliteration, from_original))
     from_length = column_property(func.length(from_original))
     def from_highlight(self, search):
-        return highlight(self.from_lang.code, self.from_original, self.from_roman_transliteration, search)
+        return highlight(
+            self.from_lang.code,
+            self.from_original,
+            self.from_roman_transliteration or self.from_original,
+            search,
+        )
 
     to_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     to_lang = relationship(Language, foreign_keys=[to_lang_id])

@@ -20,6 +20,7 @@ from ..transliterate import ALPHABETS
 
 transliterations = (
     ('bg', 'общопрактикуваща лекарка', 'obštopraktikuvašta lekarka'),
+    ('eo', 'cxu', 'ĉu'),
     ('sr', 'чокањчиће', 'čokanjčiće'),
 )
 @pytest.mark.parametrize('original_to_roman', (True, False))

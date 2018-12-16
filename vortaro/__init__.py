@@ -20,7 +20,7 @@ from pathlib import Path
 from shutil import get_terminal_size
 
 from sqlalchemy import exists
-from sqlalchemy.sql import desc, func
+from sqlalchemy.sql import func, or_
 from sqlalchemy.orm import aliased
 
 from .models import (
@@ -121,7 +121,7 @@ def search(text: Word, limit: int=ROWS-2, *,
     q_all = q_joins \
         .filter(or_(
             func.lower(Dictionary.from_roman_transliteration).contains(ltext),
-            func.lower(Dictionary.from_roman_original).contains(ltext),
+            func.lower(Dictionary.from_original).contains(ltext),
         ))
     q_main = q_all \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
