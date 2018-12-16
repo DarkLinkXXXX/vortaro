@@ -62,5 +62,4 @@ in a special way and to cache them in memory. Version 0 used Redis as the
 in-memory store.
 
 Remarking that the queries were sort of complicated, I rewrote it in version 1
-to use a relational database. It is tested only in PostgreSQL, but I suspect it
-will work in others, as I think I have used only standard SQL features.
+to use a relational database. It is tested in PostgreSQL and SQLite.

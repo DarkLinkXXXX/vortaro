@@ -14,13 +14,29 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from . import download, index, search, languages
+from logging import getLogger
+from pathlib import Path
+
 import horetu
 
+from . import download, index, search, languages, DATA
+
+logger = getLogger(__name__)
+
 def ui():
-    horetu.cli(horetu.Program([
+    config_name = 'config'
+    def configure(data_dir: Path=DATA):
+        path = data_dir / config_name
+        if path.exists():
+            raise horetu.Error(f'Configuration file already exists at {path}')
+        else:
+            with path.open('w') as fp:
+                fp.write(horetu.config_default(program))
+    program = horetu.Program([
+        configure,
         languages,
         index,
         download,
         search,
-    ], name='vortaro'))
+    ], str(DATA / config_name), name='vortaro')
+    horetu.cli(program)

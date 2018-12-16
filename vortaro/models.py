@@ -20,7 +20,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CreateColumn
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import sessionmaker, column_property, relationship, backref
 from sqlalchemy.sql import func
 from sqlalchemy import (
@@ -96,7 +96,13 @@ class File(Base):
     def update(file, read, session):
         get_pos = table_dict(PartOfSpeech, 'text')
         get_lang = table_dict(Language, 'code')
-        session.execute('SET CONSTRAINTS ALL DEFERRED')
+
+        # If the database allows it, disable constraints during insert
+        try:
+            session.execute('SET CONSTRAINTS ALL DEFERRED')
+        except OperationalError:
+            pass
+
         file.definitions[:] = []
         session.flush()
         for index, pair in enumerate(read(Path(file.path))):
