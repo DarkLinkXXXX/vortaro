@@ -136,6 +136,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
+        #   func.max(Dictionary.from_length)+8,
             func.max(ToLanguage.length),
         )
     row = q_lengths.one()
@@ -144,11 +145,11 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
         # Don't really look up from length, because it takes too long.
         c_max = int((width - sum(row) + 8) / 2)
-        quantile = 4/5
+        quantile = 1 - min(1, len(text)/limit)
         length = func.length(Dictionary.from_word)
-        c_quantile = session.query(length).order_by(length) \
-            .offset(session.query(Dictionary).count()*quantile).limit(1) \
-            .scalar()
+        subq =session.query(length).filter(length > len(text))
+        offset = max(0, int(subq.count()*quantile-1))
+        c_quantile = subq.order_by(length).offset(offset).limit(1).scalar()
         widths = (a, b, min(c_quantile, c_max), d)
 
         tpl_line = (meta_tpl % widths).replace('\t', '  ')
