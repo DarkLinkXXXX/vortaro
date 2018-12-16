@@ -17,7 +17,6 @@
 from sys import stdout, stderr
 from os import environ, makedirs
 from pathlib import Path
-from collections import OrderedDict
 from shutil import get_terminal_size
 
 from sqlalchemy import exists
@@ -28,13 +27,9 @@ from .models import (
     SessionMaker, get_or_create,
     History, File, Language, PartOfSpeech, Dictionary, Format,
 )
-from . import formats
+from .highlight import quiet, HIGHLIGHT_COUNT, QUIET_COUNT
+from .formats import FORMATS
 
-FORMATS = OrderedDict((
-    ('dict.cc', formats.dictcc),
-    ('cc-cedict', formats.cedict),
-    ('espdic', formats.espdic),
-))
 DATABASE = 'postgresql:///vortaro'
 COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
@@ -98,7 +93,7 @@ def languages(database=DATABASE):
     for language, in q.all():
         stdout.write(language + '\n')
 
-def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
+def search(text: Word, limit: int=ROWS-2, *,
            data_dir: Path=DATA,
            database=DATABASE,
            from_langs: [str]=(), to_langs: [str]=()):
@@ -107,7 +102,6 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
     :param text: The word/fragment you are searching for
     :param limit: Maximum number of words to return
-    :param width: Number of column in a line, or 0 to disable truncation
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
     :param pathlib.Path data_dir: Vortaro data directory
@@ -138,24 +132,23 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
-
     q_lengths = q_main.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
-            func.max(PartOfSpeech.length),
-            func.max(FromLanguage.length),
-            func.max(Dictionary.from_length)+8,
-            func.max(ToLanguage.length),
+            func.max(PartOfSpeech.length) + QUIET_COUNT,
+            func.max(FromLanguage.length) + QUIET_COUNT,
+            func.max(Dictionary.from_length) + HIGHLIGHT_COUNT,
+            func.max(ToLanguage.length) + QUIET_COUNT,
         )
     row = q_lengths.one()
     if any(row):
         tpl_line = (meta_tpl % row).replace('\t', '  ')
         for definition in q_main:
             stdout.write(tpl_line % (
-                definition.part_of_speech.text,
-                definition.from_lang.code,
+                quiet(definition.part_of_speech.text),
+                quiet(definition.from_lang.code),
                 definition.from_highlight(text),
-                definition.to_lang.code,
+                quiet(definition.to_lang.code),
                 definition.to_word,
             ) + '\n')
             stdout.flush()

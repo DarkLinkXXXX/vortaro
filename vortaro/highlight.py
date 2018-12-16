@@ -17,7 +17,13 @@
 from .transliterate import get_alphabet
 
 UNDERLINE = '\033[4m'
+DIM = '\033[2m'
 NORMAL = '\033[0m'
+HIGHLIGHT_COUNT = len(UNDERLINE + NORMAL)
+QUIET_COUNT = len(UNDERLINE + NORMAL)
+
+def quiet(x):
+    return DIM + x + NORMAL
 
 def highlight(lang, big_foreign, small_roman):
     alphabet = get_alphabet(lang)
