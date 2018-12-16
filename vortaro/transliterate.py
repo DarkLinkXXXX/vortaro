@@ -16,7 +16,10 @@
 
 from collections import defaultdict
 from functools import lru_cache
+from logging import getLogger
 from io import StringIO
+
+logger = getLogger(__name__)
 
 @lru_cache(None)
 def get_alphabet(code):
@@ -47,31 +50,40 @@ class Mapper(object):
         buf = ''
         input = StringIO(word)
         output = StringIO()
+        def single_char(x):
+            y = self._mapping[x.lower()]
+            try:
+                return y['']
+            except KeyError:
+                logger.error(
+                    'A multi-character translateration is specified'
+                    'without a single-character transliteration,'
+                    'and you are trying to use the single-character translateration.'
+                )
         while True:
             char = input.read(1)
             if char == '':
                 if buf:
-                    write(buf, self._mapping[buf.lower()][''])
+                    write(buf, single_char(buf))
                 break
             elif buf:
                 if char.lower() in self._mapping[buf.lower()]:
                     write(buf + char, self._mapping[buf.lower()][char.lower()])
                     buf = ''
                 elif char.lower() in self._mapping:
-                    write(buf + char, self._mapping[buf.lower()][''])
+                    write(buf + char, single_char(buf))
                     buf = char
                 else:
-                    write(buf, self._mapping[buf.lower()][''])
+                    write(buf, single_char(buf))
                     output.write(char)
                     buf = ''
             else:
                 if char.lower() not in self._mapping:
                     output.write(char)
-                elif 1 < len(self._mapping[char.lower()]):
+                elif 1 < len(single_char(char)):
                     buf = char
                 else:
-                    print((output.getvalue(), buf, char, word))
-                    output.write(self._mapping[char.lower()][''])
+                    output.write(single_char(char))
         return output.getvalue()
 
 IDENTITY = Alphabet(())
