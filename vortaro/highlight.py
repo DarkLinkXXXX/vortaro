@@ -14,7 +14,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from functools import partial
+from logging import getLogger
+
 from .transliterate import get_alphabet
+
+logger = getLogger(__name__)
 
 UNDERLINE = '\033[4m'
 DIM = '\033[2m'
@@ -34,22 +39,34 @@ def highlight(language_code, big_foreign, big_roman, small_roman, _tuple=False):
     :param bool _tuple: Return a tuple for testing
     '''
     alphabet = get_alphabet(language_code)
+    f = partial(_highlight, alphabet, big_foreign, small_roman)
     if small_roman.lower() in big_roman.lower():
-        left = big_roman.lower().index(small_roman.lower())
-        right = left + len(small_roman)
-        
-        y = (
-            alphabet.from_roman(big_roman[:left]),
-            alphabet.from_roman(big_roman[left:right]),
-            alphabet.from_roman(big_roman[right:]),
-        )
-        if ''.join(y) == big_foreign:
-            if _tuple:
-                return y
-            else:
-                a, b, c = y
-                return BOLD + a + UNDERLINE + b + NORMAL + BOLD + c + NORMAL
-    if _tuple:
-        return '', big_foreign, ''
+        y = f(big_roman)
+    elif (big_foreign != big_roman) and (small_roman.lower() in big_foreign.lower()):
+        y = f(big_foreign)
     else:
-        return NORMAL + NORMAL + BOLD + big_foreign + NORMAL + NORMAL
+        logger.debug('Could not highlight: small_roman text not found')
+
+    if y == None:
+        if _tuple:
+            return '', big_foreign, ''
+        else:
+            return NORMAL + NORMAL + BOLD + big_foreign + NORMAL + NORMAL
+    else:
+        if _tuple:
+            return y
+        else:
+            a, b, c = y
+            return BOLD + a + UNDERLINE + b + NORMAL + BOLD + c + NORMAL
+
+def _highlight(alphabet, big_foreign, small_roman, big_roman):
+    left = big_roman.lower().index(small_roman.lower())
+    right = left + len(small_roman)
+    
+    y = (
+        alphabet.from_roman(big_roman[:left]),
+        alphabet.from_roman(big_roman[left:right]),
+        alphabet.from_roman(big_roman[right:]),
+    )
+    if ''.join(y) == big_foreign:
+        return y
