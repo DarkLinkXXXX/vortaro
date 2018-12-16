@@ -29,6 +29,9 @@ from sqlalchemy import (
     String, Integer, DateTime,
 )
 
+from .highlight import highlight
+from .transliterate import get_alphabet
+
 Base = declarative_base()
 
 def get_or_create(session, model, tries=1, **kwargs):
@@ -155,13 +158,12 @@ class Dictionary(Base):
     from_roman_transliteration = Column(String, nullable=True)
     CheckConstraint('from_word != from_roman_transliteration')
     from_roman = column_property(func.coalesce(from_roman_transliteration, from_word))
-    from_length = column_property(func.length(from_word))
+    from_highlight_length = column_property(func.length(from_word)+2)
+    def from_highlight(self, search):
+        return highlight(self.from_lang.code, self.from_word, search)
 
     to_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     to_lang = relationship(Language, foreign_keys=[to_lang_id])
     to_word = Column(String, nullable=False)
 
-    def to_highlight(self, search):
-        return _highlight(self.to_lang.code, self.to_word, search)
-
-Index('from_length', Dictionary.from_length)
+Index('from_highlight_length', Dictionary.from_highlight_length)

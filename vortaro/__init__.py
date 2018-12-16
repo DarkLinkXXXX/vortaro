@@ -14,12 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sys import stdout
+from sys import stdout, stderr
 from os import environ, makedirs
 from pathlib import Path
 from collections import OrderedDict
 from shutil import get_terminal_size
 
+from sqlalchemy import exists
 from sqlalchemy.sql import func
 from sqlalchemy.orm import aliased
 
@@ -61,21 +62,21 @@ def download(source: tuple(FORMATS), noindex=False,
     FORMATS[source].download(subdir)
     _index_subdir(session, not noindex, source, subdir)
 
-def index(refresh=False,
+def index(*sources: tuple(FORMATS), refresh=False,
         data_dir: Path=DATA, database=DATABASE):
     '''
-    Download a dictionary.
+    Index dictionaries.
 
+    :param sources: Dictionary sources to index
     :param pathlib.path data_dir: Vortaro data directory
     :param bool refresh: Replace the existing index.
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    for name in FORMATS:
+    for name in sources or FORMATS:
         directory = data_dir / name
         if directory.is_dir() and any(f.is_file() for f in directory.iterdir()):
             _index_subdir(session, refresh, directory.name, directory)
-    session.commit()
 
 def _index_subdir(session, refresh, format_name, directory):
     for path in directory.iterdir():
@@ -84,6 +85,8 @@ def _index_subdir(session, refresh, format_name, directory):
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session)
+                stderr.write('Indexed {path}\n')
+                session.commit()
 
 def languages(database=DATABASE):
     '''
@@ -117,12 +120,12 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     q_all = session.query(Dictionary) \
         .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
         .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id) \
-        .filter(Dictionary.from_roman.contains(text))
+        .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
     if from_langs:
         q_all = q_all.filter(FromLanguage.code.in_(from_langs))
     if to_langs:
         q_all = q_all.filter(ToLanguage.code.in_(to_langs))
-    q = q_all.limit(limit)
+    q = q_all.order_by(Dictionary.from_highlight_length).limit(limit)
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
@@ -131,26 +134,25 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
-            func.max(Dictionary.from_length),
+            func.max(Dictionary.from_highlight_length),
             func.max(ToLanguage.length),
         )
-    if q.count():
-        tpl_line = (meta_tpl % q_lengths.one()).replace('\t', '  ')
-        for definition in q.all():
+    row = q_lengths.one()
+    if any(row):
+        tpl_line = (meta_tpl % row).replace('\t', '  ')
+        for definition in q:
             stdout.write(tpl_line % (
                 definition.part_of_speech.text,
                 definition.from_lang.code,
-                definition.from_word, # highlight(definition.from_lang, definition.from_word, search),
+                definition.from_highlight(text),
                 definition.to_lang.code,
-                definition.to_highlight(text),
+                definition.to_word,
             ) + '\n')
+            stdout.flush()
 
-#   all_languages = session.query(Language.code)
-    session.add(History(
-        text=text,
-#       from_langs=from_langs,
-#       to_langs=to_langs,
-        total_results=q_all.count(),
-        displayed_results=limit,
-    ))
-    session.commit()
+#   session.add(History(
+#       text=text,
+#       total_results=q_all.count(),
+#       displayed_results=limit,
+#   ))
+#   session.commit()
