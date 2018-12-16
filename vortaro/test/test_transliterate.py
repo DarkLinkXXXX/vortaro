@@ -15,15 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import pytest
-from ..highlight import highlight
 
-HIGHLIGHT = (
-    ('en', 'elephant',  'PH',   '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
-#   ('sr', 'чокањчиће', 'či',   '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
-#   ('sr', 'чокањчиће', 'njČi', '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
-    ('sr', 'чокањчиће', 'jči',  '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+from ..transliterate import ALPHABETS
+
+transliterations = (
+    ('bg', 'общопрактикуваща лекарка', ''),
 )
-
-@pytest.mark.parametrize('lang, big_foreign, small_roman, highlighted', HIGHLIGHT)
-def test_highlight(lang, big_foreign, small_roman, highlighted):
-    assert highlight(lang, big_foreign, small_roman) == highlighted
+@pytest.mark.parametrize('language_code, original, roman', transliterations)
+def test_highlight(language_code, original, roman):
+    alphabet = ALPHABETS[language_code]
+#   yield alphabet.from_roman(roman) == original
+#   yield alphabet.to_roman(original) == roman

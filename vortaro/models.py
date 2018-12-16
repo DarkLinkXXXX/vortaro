@@ -21,7 +21,11 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CreateColumn
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError, OperationalError
-from sqlalchemy.orm import sessionmaker, column_property, relationship, backref
+from sqlalchemy.orm import (
+    sessionmaker,
+    column_property, synonym,
+    relationship, backref,
+)
 from sqlalchemy.sql import func
 from sqlalchemy import (
     create_engine, CheckConstraint,
@@ -115,8 +119,8 @@ class File(Base):
                 file=file, index=index,
                 part_of_speech=get_pos(session, pair.get('part_of_speech', '')),
                 from_lang=get_lang(session, pair['from_lang']),
-                from_word=from_orig,
-                from_roman=from_roman,
+                from_original=from_orig,
+                from_roman_transliteration=from_roman,
                 to_lang=get_lang(session, pair['to_lang']),
                 to_word=pair['to_word'],
             ))
@@ -163,13 +167,14 @@ class Dictionary(Base):
 
     from_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     from_lang = relationship(Language, foreign_keys=[from_lang_id])
-    from_word = Column(String, nullable=False)
 
     # TODO: Allow for queries in both roman and original
+    from_original = Column(String, nullable=False)
+    from_word = synonym('from_original')
     from_roman_transliteration = Column(String, nullable=True)
     CheckConstraint('from_word != from_roman_transliteration')
-    from_roman = column_property(func.coalesce(from_roman_transliteration, from_word))
-    from_length = column_property(func.length(from_word))
+    from_roman = column_property(func.coalesce(from_roman_transliteration, from_original))
+    from_length = column_property(func.length(from_original))
     def from_highlight(self, search):
         return highlight(self.from_lang.code, self.from_word, search)
 
