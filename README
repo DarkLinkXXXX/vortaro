@@ -24,7 +24,13 @@ Then you can look up stuff like this. ::
 The default is to look for the phrase in all dictionaries.
 Restrict to particular languages like this. ::
 
-    python3 -m vortaro lookup -to hr -to sv -from en elephant
+    python3 -m vortaro search -to hr -to sv -from en elephant
+
+It is possible to search with multiple alphabets or transliterations.
+For example, these return the same thing.
+
+    python3 -m vortaro search -from eo ĉu
+    python3 -m vortaro search -from eo cxu
 
 Run these to see help. ::
 
