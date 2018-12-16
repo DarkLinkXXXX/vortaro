@@ -158,7 +158,7 @@ class Dictionary(Base):
     from_roman_transliteration = Column(String, nullable=True)
     CheckConstraint('from_word != from_roman_transliteration')
     from_roman = column_property(func.coalesce(from_roman_transliteration, from_word))
-    from_highlight_length = column_property(func.length(from_word)+2)
+    from_length = column_property(func.length(from_word))
     def from_highlight(self, search):
         return highlight(self.from_lang.code, self.from_word, search)
 
@@ -166,4 +166,4 @@ class Dictionary(Base):
     to_lang = relationship(Language, foreign_keys=[to_lang_id])
     to_word = Column(String, nullable=False)
 
-Index('from_highlight_length', Dictionary.from_highlight_length)
+Index('from_length', Dictionary.from_length)

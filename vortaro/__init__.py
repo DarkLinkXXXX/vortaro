@@ -85,7 +85,7 @@ def _index_subdir(session, refresh, format_name, directory):
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session)
-                stderr.write('Indexed {path}\n')
+                stderr.write(f'Indexed {path}\n')
                 session.commit()
 
 def languages(database=DATABASE):
@@ -117,30 +117,31 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     session = SessionMaker(database)
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
-    q_all = session.query(Dictionary) \
+    q_joins = session.query(Dictionary) \
         .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
-        .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id) \
-        .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
+        .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id)
     if from_langs:
-        q_all = q_all.filter(FromLanguage.code.in_(from_langs))
+        q_joins = q_joins.filter(FromLanguage.code.in_(from_langs))
     if to_langs:
-        q_all = q_all.filter(ToLanguage.code.in_(to_langs))
-    q = q_all.order_by(Dictionary.from_highlight_length).limit(limit)
+        q_joins = q_joins.filter(ToLanguage.code.in_(to_langs))
+    q_all = q_joins \
+        .filter(func.lower(Dictionary.from_roman).contains(text.lower()))
+    q_main = q_all.order_by(Dictionary.from_length).limit(limit)
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
-    q_lengths = q.from_self() \
+    q_lengths = q_main.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
-            func.max(Dictionary.from_highlight_length),
+            func.max(Dictionary.from_length)+8,
             func.max(ToLanguage.length),
         )
     row = q_lengths.one()
     if any(row):
         tpl_line = (meta_tpl % row).replace('\t', '  ')
-        for definition in q:
+        for definition in q_main:
             stdout.write(tpl_line % (
                 definition.part_of_speech.text,
                 definition.from_lang.code,
