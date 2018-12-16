@@ -96,6 +96,7 @@ class File(Base):
     def update(file, read, session):
         get_pos = table_dict(PartOfSpeech, 'text')
         get_lang = table_dict(Language, 'code')
+        session.execute('SET CONSTRAINTS ALL DEFERRED')
         file.definitions[:] = []
         session.flush()
         for index, pair in enumerate(read(Path(file.path))):
