@@ -74,6 +74,7 @@ class Alphabet(object):
                 elif 1 < len(mapping[char.lower()]):
                     buf = char
                 else:
+                    print(char, mapping)
                     # Cannot be converted
                     return word
         return output.getvalue()
