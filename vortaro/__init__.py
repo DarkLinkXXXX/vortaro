@@ -86,7 +86,6 @@ def _index_subdir(session, refresh, format_name, directory):
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session)
                 stderr.write(f'Indexed {path}\n')
-                session.commit()
 
 def languages(database=DATABASE):
     '''

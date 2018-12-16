@@ -33,6 +33,7 @@ from .highlight import highlight
 from .transliterate import get_alphabet
 
 Base = declarative_base()
+CHUNKSIZE = 1000
 
 def get_or_create(session, model, tries=1, **kwargs):
     for i in range(tries):
@@ -112,6 +113,8 @@ class File(Base):
                 to_lang=get_lang(session, pair['to_lang']),
                 to_word=pair['to_word'],
             ))
+            if (index % CHUNKSIZE) == 0:
+                session.commit()
         file.mtime = _mtime(file.path)
         session.add(file)
         session.commit()
