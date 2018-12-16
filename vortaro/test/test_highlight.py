@@ -19,22 +19,20 @@ from ..highlight import highlight
 
 HIGHLIGHT = (
     ('en', 'elephant',  'PH', ('ele', 'ph', 'ant')),
+    ('en', 'elephant',  'PH', '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
+
+    ('bg', 'минерална вода', 'voda', ('минерална ', 'вода', '')),
+#   ('bg', 'минерална вода', 'voda', '\x1b[0m\x1b[0m\x1b[1mминерална вода\x1b[0m\x1b[0m'),
+#   ('bg', 'минерална вода', 'voda', '\033[1mминерална \033[4mвода\033[1m\033[0m'),
 
     ('bs', 'mineralna voda', 'voda', ('mineralna ', 'voda', '')),
-    ('bg', 'минерална вода', 'voda', ('минерална ', 'вода', '')),
+    ('bs', 'mineralna voda', 'voda', '\x1b[1mmineralna \x1b[4mvoda\x1b[0m\x1b[1m\x1b[0m'),
 
     ('sr', 'чокањчиће', 'či',   ('чокањ', 'чи', 'ће')),
-    ('sr', 'чокањчиће', 'njČi', ('чока', 'њчи', 'ће')),
-    ('sr', 'чокањчиће', 'jči',  ('', 'чокањчиће', '')),
-
-
-#   ('en', 'elephant',  'PH', '\x1b[1mele\x1b[4mph\x1b[0m\x1b[1mant\x1b[0m'),
-
-#   ('bs', 'mineralna voda', 'voda', '\x1b[1mmineralna \x1b[4mvoda\x1b[0m\x1b[1m\x1b[0m'),
-#   ('bs', 'минерална вода', 'voda', '\x1b[0m\x1b[0m\x1b[1mминерална вода\x1b[0m\x1b[0m'),
-
 #   ('sr', 'чокањчиће', 'či',   '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+    ('sr', 'чокањчиће', 'njČi', ('чока', 'њчи', 'ће')),
 #   ('sr', 'чокањчиће', 'njČi', '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
+    ('sr', 'чокањчиће', 'jči',  ('', 'чокањчиће', '')),
 #   ('sr', 'чокањчиће', 'jči',  '\x1b[0m\x1b[0m\x1b[1mчокањчиће\x1b[0m\x1b[0m'),
 )
 
