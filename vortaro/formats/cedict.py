@@ -17,7 +17,7 @@
 from functools import lru_cache
 from pathlib import Path
 from gzip import decompress
-from sys import stderr, exit
+from sys import stderr
 
 from .http import simple_download
 

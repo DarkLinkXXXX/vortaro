@@ -14,23 +14,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from shlex import split
 from os import environ, makedirs
 from pathlib import Path
-from itertools import product
-from functools import partial
 from collections import OrderedDict
 from shutil import get_terminal_size
 
 from sqlalchemy.sql import func
 from sqlalchemy.orm import aliased
 
-# from .render import Table, Stream
 from .models import (
     SessionMaker, get_or_create,
     History, File, Language, PartOfSpeech, Dictionary, Format,
 )
-from . import models, formats
+from . import formats
 
 FORMATS = OrderedDict((
     ('dict.cc', formats.dictcc),
@@ -157,32 +153,3 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         displayed_results=limit,
     ))
     session.commit()
-
-def table(search: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
-          data_dir: Path=DATA,
-          database=DATABASE,
-          from_langs: [str]=(), to_langs: [str]=()):
-    '''
-    Search for a word in the dictionaries, and format the result as a table.
-
-    :param search: The word/fragment you are searching for
-    :param limit: Maximum number of words to return
-    :param width: Number of column in a line, or 0 to disable truncation
-    :param from_langs: Languages the word is in, defaults to all
-    :param to_langs: Languages to look for translations, defaults to all
-    :param pathlib.Path data_dir: Vortaro data directory
-    :param database: PostgreSQL database URL
-    '''
-    session = SessionMaker(database)
-
-    t = Table(search)
-    for definition in db.search(con, from_langs, to_langs, search):
-        t.add(definition)
-        if len(t) >= limit:
-            break
-    t.sort()
-
-    if t:
-        session.add(History(query=search))
-    for row in t.render(width, limit):
-        yield row

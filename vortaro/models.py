@@ -14,12 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import datetime
-from os import makedirs
-from sys import stderr
-from hashlib import md5
-from itertools import product
-from collections import defaultdict
 from pathlib import Path
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -34,8 +28,6 @@ from sqlalchemy import (
     Column, ForeignKey, Index,
     String, Integer, DateTime,
 )
-
-from .transliterate import ALPHABETS, IDENTITY
 
 Base = declarative_base()
 

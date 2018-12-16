@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sys import stderr, exit
+from sys import stderr
 from functools import lru_cache
 
 from .http import simple_download
