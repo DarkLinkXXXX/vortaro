@@ -130,7 +130,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
 
-    q_lengths = q_all.from_self() \
+    q_lengths = q_main.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
             func.max(PartOfSpeech.length),
@@ -140,7 +140,7 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
         )
     row = q_lengths.one()
     if any(row):
-        tpl_line = (meta_tpl % widths).replace('\t', '  ')
+        tpl_line = (meta_tpl % row).replace('\t', '  ')
         for definition in q_main:
             stdout.write(tpl_line % (
                 definition.part_of_speech.text,
