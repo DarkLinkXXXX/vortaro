@@ -25,17 +25,17 @@ from pathlib import Path
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import CreateColumn
-from sqlalchemy.orm import sessionmaker, column_property
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker, column_property, relationship
+from sqlalchemy.sql import func
 from sqlalchemy import (
     create_engine, CheckConstraint,
-    Column,
-    Integer, Datetime,
+    Column, ForeignKey, Index,
+    String, Integer, DateTime,
 )
 
 from .transliterate import ALPHABETS, IDENTITY
-
-LOG_INTERVAL = 10000
-MAX_PHRASE_LENGTH = 18
 
 Base = declarative_base()
 
@@ -70,7 +70,7 @@ def use_identity(element, compiler, **kw):
 class History(Base):
     __tablename__ = 'history'
     id = Column(Integer, primary_key=True)
-    datetime = Column(Datetime, nullable=False, default='now')
+    datetime = Column(DateTime, nullable=False, default='now')
     query = Column(String, nullable=False)
 
 class Format(Base):
@@ -85,45 +85,49 @@ class File(Base):
     __tablename__ = 'file'
     id = Column(Integer, primary_key=True)
     path = Column(String, unique=True)
-    mtime = Column(Integer, nullable=False, default=datetime.datetime)
+    mtime = Column(Integer, nullable=False, default=int)
     format_id = Column(ForeignKey(Format.id), nullable=False)
     format = relationship(Format)
 
     @property
     def out_of_date(self):
         return self.mtime < _mtime(self.path)
-    def update(file, session):
-        def get_pos(pos, *, _cache={}):
-            if pos not in _cache
-                _cache[pos] = get_or_create(session, PartOfSpeech, text=pos)
-            return _cache[pos]
-        def get_lang(lang, *, _cache={}):
-            if lang not in _cache
-                _cache[lang] = get_or_create(session, PartOfSpeech, name=lang)
-            return _cache[lang]
-
+    def update(file, read, session):
+        get_pos = table_dict(PartOfSpeech, 'text')
+        get_lang = table_dict(Language, 'code')
         file.definitions[:] = []
         session.flush()
-        if file.format.name in registry:
-            for index, pair in enumerate(registry[file.format.name](file.path)):
-                file.definitions.append(Dictionary(
-                    file=file, index=index,
-                    part_of_speech=get_pos(pair['part_of_speech']),
-                    source_lang=get_lang(pair['from_lang']),
-                    source_phrase=pair['from_word'],
-                    destination_lang=get_lang(pair['to_lang']),
-                    destination_phrase=pair['to_word'],
-                ))
+        for index, pair in enumerate(read(Path(file.path))):
+            file.definitions.append(Dictionary(
+                file=file, index=index,
+                part_of_speech=get_pos(session, pair['part_of_speech']),
+                from_lang=get_lang(session, pair['from_lang']),
+                from_word=pair['from_word'],
+                to_lang=get_lang(session, pair['to_lang']),
+                to_word=pair['to_word'],
+            ))
         file.mtime = _mtime(file.path)
         session.add(file)
+
+class table_dict(object):
+    def __init__(self, Model, key):
+        self._Model = Model
+        self._key = key
+        self._cache = {}
+    def __call__(self, session, text):
+        if text not in self._cache:
+            self._cache[text] = get_or_create(session, self._Model, **{self._key: text})
+        return self._cache[text]
 
 class PartOfSpeech(Base):
     __tablename__ = 'part_of_speech'
     id = Column(Integer, primary_key=True)
     text = Column(String, unique=True, nullable=False)
-    length = column_property(func.length(text), index=True)
+    length = column_property(func.length(text))
+Index('part_of_speech_length', PartOfSpeech.length)
 
 class Language(Base):
+    __tablename__ = 'language'
     id = Column(Integer, primary_key=True)
     code = Column(String, unique=True, nullable=False)
 
@@ -136,10 +140,11 @@ class Dictionary(Base):
     part_of_speech_id = Column(Integer, ForeignKey(PartOfSpeech.id), nullable=False)
     part_of_speech = relationship(PartOfSpeech)
 
-    source_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
-    source_lang = relationship(Language, foreign_keys=[source_lang_id])
-    source_phrase = Column(String, nullable=False)
-    source_length = column_property(func.length(source_phrase), index=True)
-    destination_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
-    destination_lang = relationship(Language, foreign_keys=[destination_lang_id])
-    destination_phrase = Column(String, nullable=False)
+    from_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
+    from_lang = relationship(Language, foreign_keys=[from_lang_id])
+    from_word = Column(String, nullable=False)
+    from_length = column_property(func.length(from_word))
+    to_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
+    to_lang = relationship(Language, foreign_keys=[to_lang_id])
+    to_word = Column(String, nullable=False)
+Index('from_length', Dictionary.from_length)

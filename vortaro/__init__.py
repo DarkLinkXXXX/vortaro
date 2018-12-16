@@ -24,14 +24,15 @@ from shutil import get_terminal_size
 
 from .render import Table, Stream
 from .models import (
-    SessionMaker, History, File, Language, Dictionary,
+    SessionMaker, get_or_create,
+    History, File, Language, Dictionary, Format,
 )
 from . import models, formats
 
 FORMATS = OrderedDict((
-    ('dict.cc', dictcc),
-    ('cc-cedict', cedict),
-    ('espdic', espdic),
+    ('dict.cc', formats.dictcc),
+    ('cc-cedict', formats.cedict),
+    ('espdic', formats.espdic),
 ))
 DATABASE = 'postgresql:///vortaro'
 COLUMNS, ROWS = get_terminal_size((80, 20))
@@ -59,7 +60,7 @@ def download(source: tuple(FORMATS), force=False,
     makedirs(subdir, exist_ok=True)
     format = FORMATS[source]
     format.download(subdir)
-    _index_subdir(session, format, subdir)
+    _index_subdir(session, refresh, format, subdir)
 
 def index(refresh=False,
         data_dir: Path=DATA, database=DATABASE):
@@ -75,15 +76,15 @@ def index(refresh=False,
         directory = data_dir / name
         if directory.is_dir() and any(f.is_file() for f in directory.iterdir()):
             format = get_or_create(session, Format, name=name)
-            _index_subdir(session, format, path)
+            _index_subdir(session, refresh, format, directory)
     session.commit()
 
-def _index_subdir(session, format, directory):
+def _index_subdir(session, refresh, format, directory):
     for path in directory.iterdir():
         if path.is_file():
-            file = get_or_create(session, File, path=path, format=format)
+            file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
-                file.update(session)
+                file.update(FORMATS[file.format.name].read, session)
 
 def languages(database=DATABASE):
     '''
