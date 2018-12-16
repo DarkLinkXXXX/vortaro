@@ -21,7 +21,7 @@ from collections import OrderedDict
 from shutil import get_terminal_size
 
 from sqlalchemy import exists
-from sqlalchemy.sql import func
+from sqlalchemy.sql import desc, func
 from sqlalchemy.orm import aliased
 
 from .models import (
@@ -131,23 +131,27 @@ def search(text: Word, limit: int=ROWS-2, *, width: int=COLUMNS,
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
 
-    # Estimate this one because doing it exactly takes too long.
-    length = func.length(Dictionary.from_word)
-    q_from_length_quantile, = session.query(length).order_by(length).desc() \
-        .offset(session.query(func.count(Dictionary)*quantile).limit(1)) \
-        .scalar()
-
     q_lengths = q_all.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
             func.max(PartOfSpeech.length),
             func.max(FromLanguage.length),
-            func.max(Dictionary.from_length)+8,
             func.max(ToLanguage.length),
         )
     row = q_lengths.one()
     if any(row):
-        tpl_line = (meta_tpl % row).replace('\t', '  ')
+        a, b, d = row
+
+        # Don't really look up from length, because it takes too long.
+        c_max = int((width - sum(row) + 8) / 2)
+        quantile = 4/5
+        length = func.length(Dictionary.from_word)
+        c_quantile = session.query(length).order_by(length) \
+            .offset(session.query(Dictionary).count()*quantile).limit(1) \
+            .scalar()
+        widths = (a, b, min(c_quantile, c_max), d)
+
+        tpl_line = (meta_tpl % widths).replace('\t', '  ')
         for definition in q_main:
             stdout.write(tpl_line % (
                 definition.part_of_speech.text,
