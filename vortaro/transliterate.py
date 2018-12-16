@@ -74,7 +74,8 @@ class Alphabet(object):
                 elif 1 < len(mapping[char.lower()]):
                     buf = char
                 else:
-                    write(char, mapping[char.lower()][''])
+                    # Cannot be converted
+                    return word
         return output.getvalue()
 
 IDENTITY = Alphabet(())
