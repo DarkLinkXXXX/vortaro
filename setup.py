@@ -15,13 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from distutils.core import setup
+from setuptools import find_packages
 
 setup(name='vortaro',
       author='Thomas Levine',
       author_email='_@thomaslevine.com',
       description='Query bilingual dictionaries.',
       url='https://thomaslevine.com/scm/vortaro/',
-      packages=['vortaro'],
+      packages=find_packages('.'),
       install_requires=[
           'horetu>=0.4.1',
           'SQLAlchemy>=1.2.11',

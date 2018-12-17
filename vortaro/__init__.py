@@ -55,7 +55,8 @@ def download(source: tuple(FORMATS), noindex=False,
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
     FORMATS[source].download(subdir)
-    _index_subdir(session, not noindex, source, subdir)
+    if not noindex:
+        _index_subdir(session, False, source, subdir)
 
 def index(*sources: tuple(FORMATS), refresh=False,
         data_dir: Path=DATA, database=DATABASE):
