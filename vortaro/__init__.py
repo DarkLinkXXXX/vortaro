@@ -148,13 +148,13 @@ def search(text: Word, limit: int=ROWS-2, *,
     if any(row):
         tpl_line = (meta_tpl % row).replace('\t', '  ')
         for definition in q_main:
-            stdout.write(tpl_line % (
+            stdout.write((tpl_line % (
                 quiet(definition.part_of_speech.text),
                 quiet(definition.from_lang.code),
                 definition.from_highlight(text),
                 quiet(definition.to_lang.code),
                 bold(definition.to_word),
-            ) + '\n')
+            )).lstrip() + '\n') # lstrip in case pos is empty
             stdout.flush()
 
 #   session.add(History(
