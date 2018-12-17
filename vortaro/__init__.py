@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sys import stderr
+from logging import getLogger
 from os import environ, makedirs
 from pathlib import Path
 from collections import namedtuple
@@ -28,6 +28,8 @@ from .models import (
     File, Language, PartOfSpeech, Dictionary, Format,
 )
 from .formats import FORMATS
+
+logger = getLogger(__name__)
 
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
 DATABASE = 'sqlite:///%s/vortaro.sqlite' % DATA
@@ -83,7 +85,7 @@ def _index_subdir(session, chunksize, refresh, format_name, directory):
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session, chunksize)
-                stderr.write('Indexed %s\n' % path)
+                logger.info('Indexed %s\n' % path)
 
 def languages(database=DATABASE):
     '''
@@ -97,6 +99,7 @@ def languages(database=DATABASE):
         yield language
 
 def _search_query(session, from_langs, to_langs, text):
+    # Check whether languages are in the database.
     if from_langs or to_langs:
         langs = tuple(from_langs) + tuple(to_langs)
         q = session.query(Language).filter(Language.code.in_(langs))
@@ -105,9 +108,9 @@ def _search_query(session, from_langs, to_langs, text):
                 return session.query(~exists().where(Language.code==lang)).scalar()
             missing = tuple(filter(f, langs))
             if missing:
-                stderr.write('No such languages: %s\n' % (', '.join(missing)))
-                stderr.flush()
+                logger.warn('No such languages: %s\n' % (', '.join(missing)))
 
+    # Main search query
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
     q = session.query(Dictionary) \

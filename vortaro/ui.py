@@ -43,6 +43,7 @@ def search(text: Word, limit: int=ROWS-2, *,
     :param database: SQLAlchemy database URL
     '''
     session = SessionMaker(database)
+
     q_all, FromLanguage, ToLanguage = \
         _search_query(session, from_langs, to_langs, text)
     q_main = q_all \
