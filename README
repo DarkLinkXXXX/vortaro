@@ -76,11 +76,13 @@ History
 -------
 The idea of underlining the search term comes from
 Matthias Bloch's `woerterbuch.pl <https://www1.dict.cc/download/woerterbuch.pl>`_.
+I think I got the idea of sorting by word length from Dandified Packaging Tool.
 
 woerterbuch.pl scans the whole dictionary each time a phrase is requested.
-I wanted lower-latency responses, so I decided to index the dictionaries
-in a special way and to cache them in memory. Version 0 used Redis as the
-in-memory store.
+I wanted more timely responses, so I decided to index the dictionaries and
+cache them in memory. Version 0 used Redis as the in-memory store.
 
-Remarking that the queries were sort of complicated, I rewrote it in version 1
-to use a relational database. It is tested in PostgreSQL and SQLite.
+Once I figured out how I wanted the search index to be structured, it was
+easy to rewrite it for relational databases. This made the whole thing easier
+to manage. Version 1 is rewritten to use a relational database. It is tested
+in PostgreSQL and SQLite.
