@@ -20,7 +20,7 @@ from pathlib import Path
 from collections import namedtuple
 from shutil import get_terminal_size
 
-from sqlalchemy.sql import func, or_
+from sqlalchemy.sql import exists, func, or_
 from sqlalchemy.orm import aliased
 
 from .models import (
@@ -97,6 +97,17 @@ def languages(database=DATABASE):
         yield language
 
 def _search_query(session, from_langs, to_langs, text):
+    if from_langs or to_langs:
+        langs = tuple(from_langs) + tuple(to_langs)
+        q = session.query(Language).filter(Language.code.in_(langs))
+        if q.count() < len(langs):
+            def f(lang):
+                return session.query(~exists().where(Language.code==lang)).scalar()
+            missing = tuple(filter(f, langs))
+            if missing:
+                stderr.write('No such languages: %s\n' % (', '.join(missing)))
+                stderr.flush()
+
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
     q = session.query(Dictionary) \
