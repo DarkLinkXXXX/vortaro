@@ -49,7 +49,7 @@ def download(source: tuple(FORMATS), noindex=False, chunksize: int=CHUNKSIZE,
     :param source: Dictionary source to download from
     :param pathlib.path data_dir: Vortaro data directory
     :param bool noindex: Do not update the index
-    :param database: PostgreSQL database URL
+    :param database: SQLAlchemy database URL
     :param chunksize: Chunk size for commits; lower this if you get a MemoryError
     '''
     session = SessionMaker(database)
@@ -67,7 +67,7 @@ def index(*sources: tuple(FORMATS), refresh=False, chunksize: int=CHUNKSIZE,
     :param sources: Dictionary sources to index
     :param pathlib.path data_dir: Vortaro data directory
     :param bool refresh: Replace the existing index.
-    :param database: PostgreSQL database URL
+    :param database: SQLAlchemy database URL
     :param chunksize: Chunk size for commits; lower this if you get a MemoryError
     '''
     session = SessionMaker(database)
@@ -89,7 +89,7 @@ def languages(database=DATABASE):
     '''
     List from-languages that have been indexed.
 
-    :param database: PostgreSQL database URL
+    :param database: SQLAlchemy database URL
     '''
     session = SessionMaker(database)
     q = session.query(Language.code).order_by(Language.code)
@@ -125,7 +125,7 @@ def search(text: Word, *, database=DATABASE,
     :param text: The word/fragment you are searching for
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
-    :param database: PostgreSQL database URL
+    :param database: SQLAlchemy database URL
     '''
     session = SessionMaker(database)
     q, *_ = _search_query(session, from_langs, to_langs, text)

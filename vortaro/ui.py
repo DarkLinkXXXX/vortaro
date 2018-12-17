@@ -39,7 +39,7 @@ def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
     :param limit: Maximum number of words to return
     :param from_langs: Languages the word is in, defaults to all
     :param to_langs: Languages to look for translations, defaults to all
-    :param database: PostgreSQL database URL
+    :param database: SQLAlchemy database URL
     '''
     session = SessionMaker(database)
     q_all, FromLanguage, ToLanguage = \
