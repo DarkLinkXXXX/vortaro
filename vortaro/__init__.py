@@ -41,7 +41,7 @@ def Word(x):
     else:
         return x
 
-def download(source: tuple(FORMATS), noindex=False,
+def download(source: tuple(FORMATS), noindex=False, chunksize: int=100000,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
@@ -50,15 +50,16 @@ def download(source: tuple(FORMATS), noindex=False,
     :param pathlib.path data_dir: Vortaro data directory
     :param bool noindex: Do not update the index
     :param database: PostgreSQL database URL
+    :param chunksize: Chunk size for commits; lower this if you get a MemoryError
     '''
     session = SessionMaker(database)
     subdir = data_dir / source
     makedirs(subdir, exist_ok=True)
     FORMATS[source].download(subdir)
     if not noindex:
-        _index_subdir(session, False, source, subdir)
+        _index_subdir(session, chunksize, False, source, subdir)
 
-def index(*sources: tuple(FORMATS), refresh=False,
+def index(*sources: tuple(FORMATS), refresh=False, chunksize: int=100000,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Index dictionaries.
@@ -67,20 +68,21 @@ def index(*sources: tuple(FORMATS), refresh=False,
     :param pathlib.path data_dir: Vortaro data directory
     :param bool refresh: Replace the existing index.
     :param database: PostgreSQL database URL
+    :param chunksize: Chunk size for commits; lower this if you get a MemoryError
     '''
     session = SessionMaker(database)
     for name in sources or FORMATS:
         directory = data_dir / name
         if directory.is_dir() and any(f.is_file() for f in directory.iterdir()):
-            _index_subdir(session, refresh, directory.name, directory)
+            _index_subdir(session, chunksize, refresh, directory.name, directory)
 
-def _index_subdir(session, refresh, format_name, directory):
+def _index_subdir(session, chunksize, refresh, format_name, directory):
     for path in directory.iterdir():
         if path.is_file():
             format = get_or_create(session, Format, name=format_name)
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
-                file.update(FORMATS[file.format.name].read, session)
+                file.update(FORMATS[file.format.name].read, session, chunksize)
                 stderr.write(f'Indexed {path}\n')
 
 def languages(database=DATABASE):

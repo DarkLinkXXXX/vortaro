@@ -37,7 +37,6 @@ from .highlight import highlight
 from .transliterate import get_alphabet
 
 Base = declarative_base()
-CHUNKSIZE = 1000
 
 def get_or_create(session, model, tries=1, **kwargs):
     for i in range(tries):
@@ -97,7 +96,7 @@ class File(Base):
     @property
     def out_of_date(self):
         return self.mtime < _mtime(self.path)
-    def update(file, read, session):
+    def update(file, read, session, chunksize):
         get_pos = table_dict(PartOfSpeech, 'text')
         get_lang = table_dict(Language, 'code')
 
@@ -124,7 +123,7 @@ class File(Base):
                 to_lang=get_lang(session, pair['to_lang']),
                 to_word=pair['to_word'],
             ))
-            if (index % CHUNKSIZE) == 0:
+            if (index % chunksize) == 0:
                 session.commit()
         file.mtime = _mtime(file.path)
         session.add(file)
