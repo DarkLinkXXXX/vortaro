@@ -49,6 +49,7 @@ def search(text: Word, limit: int=ROWS-2, *,
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .order_by(
             Dictionary.from_length,
+            Dictionary.from_length + Dictionary.to_length,
             PartOfSpeech.text,
             Dictionary.from_word,
             Dictionary.to_word,
@@ -67,17 +68,28 @@ def search(text: Word, limit: int=ROWS-2, *,
             func.max(FromLanguage.length),
             func.max(Dictionary.from_length),
             func.max(ToLanguage.length),
-        #   func.max(Dictionary.to_length),
+            func.max(Dictionary.to_length),
         )
     row = list(q_lengths.one())
     if any(row):
-        estimated_actual_width = sum(row) + row[2]
-        estimated_available_width = width - estimated_actual_width
-        if estimated_available_width < 0 < width:
-            row[2] += int(estimated_available_width/2)
+        # Check for long lines.
+        actual_width = sum(row)
+        available_width = width - actual_width
+        if available_width < 0 < width:
+            left = row[2]
+            right = row[4]
+            if left > right:
+                # TODO: This could be chosen more smartly based on word length
+                # distribution so that the white space is likely to be closed
+                # for most words.
+                row[2] = right + (-available_width/2)
+
+        # Adjust for formatting.
         for i in (0, 1, 3):
             row[i] += QUIET_COUNT
         row[2] += HIGHLIGHT_COUNT
+        del(row[4])
+
         tpl_line = (meta_tpl % tuple(row)).replace('\t', '  ')
         for definition in q_main:
             line = (tpl_line % (
