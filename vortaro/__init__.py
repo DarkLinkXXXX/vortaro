@@ -148,19 +148,23 @@ def search(text: Word, limit: int=ROWS-2, *,
     if any(row):
         tpl_line = (meta_tpl % row).replace('\t', '  ')
         for definition in q_main:
-            stdout.write((tpl_line % (
+            line = (tpl_line % (
                 quiet(definition.part_of_speech.text),
                 quiet(definition.from_lang.code),
                 definition.from_highlight(text),
                 quiet(definition.to_lang.code),
                 bold(definition.to_word),
-            )).lstrip() + '\n') # lstrip in case pos is empty
+            ) + '\n')
+            # Remove the white space if POS is empty.
+            if row[0] == 0:
+                line = line[2:]
+            stdout.write(line)
             stdout.flush()
 
-#   session.add(History(
-#       text=text,
-#       total_results=q_all.count(),
-#       displayed_results=limit,
-#   ))
-#   session.commit()
+    session.add(History(
+        text=text,
+        total_results=q_all.count(),
+        displayed_results=limit,
+    ))
+    session.commit()
 
