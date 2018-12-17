@@ -99,30 +99,19 @@ def languages(database=DATABASE):
 def _search_query(session, from_langs, to_langs, text):
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
-    q_joins = session.query(Dictionary) \
+    q = session.query(Dictionary) \
         .join(FromLanguage, Dictionary.from_lang_id == FromLanguage.id) \
         .join(ToLanguage,   Dictionary.to_lang_id   == ToLanguage.id)
     if from_langs:
-        q_joins = q_joins.filter(FromLanguage.code.in_(from_langs))
+        q = q.filter(FromLanguage.code.in_(from_langs))
     if to_langs:
-        q_joins = q_joins.filter(ToLanguage.code.in_(to_langs))
+        q = q.filter(ToLanguage.code.in_(to_langs))
     ltext = text.lower()
-    q_all = q_joins \
-        .filter(or_(
-            func.lower(Dictionary.from_roman_transliteration).contains(ltext),
-            func.lower(Dictionary.from_original).contains(ltext),
-        ))
-    q_main = q_all \
-        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
-        .order_by(
-            Dictionary.from_length,
-            PartOfSpeech.text,
-            Dictionary.from_word,
-            Dictionary.to_word,
-       #    FromLanguage.code,
-       #    ToLanguage.code,
-       )
-    return q_main, q_all, q_joins, FromLanguage, ToLanguage
+    q = q.filter(or_(
+        func.lower(Dictionary.from_roman_transliteration).contains(ltext),
+        func.lower(Dictionary.from_original).contains(ltext),
+    ))
+    return q, FromLanguage, ToLanguage
 
 SearchResult = namedtuple('SearchResult', (
     'part_of_speech','from_lang', 'from_word', 'to_lang', 'to_word',
@@ -139,8 +128,17 @@ def search(text: Word, *, database=DATABASE,
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    q_main, *_ = _search_query(session, from_langs, to_langs, text)
-    for definition in q_main:
+    q, *_ = _search_query(session, from_langs, to_langs, text)
+    q = q.join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
+        .order_by(
+            Dictionary.from_length,
+            PartOfSpeech.text,
+            Dictionary.from_word,
+            Dictionary.to_word,
+        #   FromLanguage.code,
+        #   ToLanguage.code,
+        )
+    for definition in q:
         yield SearchResult(
             part_of_speech=definition.part_of_speech.text,
             from_lang=definition.from_lang.code,

@@ -42,8 +42,18 @@ def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
     :param database: PostgreSQL database URL
     '''
     session = SessionMaker(database)
-    q_main, q_all, q_joins, FromLanguage, ToLanguage = _search_query(session, from_langs, to_langs, text)
-    q_joins = q_joins.limit(limit)
+    q_all, FromLanguage, ToLanguage = \
+        _search_query(session, from_langs, to_langs, text)
+    q_main = q_all \
+        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
+        .order_by(
+            Dictionary.from_length,
+            PartOfSpeech.text,
+            Dictionary.from_word,
+            Dictionary.to_word,
+       #    FromLanguage.code,
+       #    ToLanguage.code,
+       ).limit(limit)
 
     # Determine column widths
     meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
@@ -65,7 +75,7 @@ def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
                 definition.from_highlight(text),
                 quiet(definition.to_lang.code),
                 bold(definition.to_word),
-            ) + '\n')
+            ))
             # Remove the white space if POS is empty.
             if row[0] == 0:
                 line = line[2:]
