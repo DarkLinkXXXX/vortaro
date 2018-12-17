@@ -18,7 +18,7 @@ from logging import getLogger
 from pathlib import Path
 
 import horetu
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, desc
 
 from .models import SessionMaker, History, PartOfSpeech, Dictionary
 from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
@@ -111,6 +111,20 @@ def search(text: Word, limit: int=ROWS-2, *,
     ))
     session.commit()
 
+def history(limit: int=None, *, nodeduplicate=False, database=DATABASE):
+    '''
+    :param limit: Maximum number of historical searches to return.
+    :param database: SQLAlchemy database URL.
+    :param nodeduplicate: Show adjacent duplicate searches.
+    '''
+    session = SessionMaker(database)
+    q = session.query(History.text) \
+        .order_by(desc(History.datetime)).limit(limit)
+    prev = None
+    for cur in q:
+        if nodeduplicate or cur != prev:
+            prev = cur
+            yield cur
 
 def ui():
     config_name = 'config'
@@ -127,5 +141,6 @@ def ui():
         index,
         download,
         search,
+        history,
     ], str(DATA / config_name), name='vortaro')
     horetu.cli(program)
