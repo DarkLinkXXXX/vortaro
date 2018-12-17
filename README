@@ -42,6 +42,11 @@ Run these to see help. ::
     python3 -m vortaro index -help
     python3 -m vortaro search -help
 
+Defaults can be configured in ``~/.vortaro/config``.
+Mine looks like this. ::
+
+    database:postgresql\:///vortaro
+
 Python
 ~~~~~~
 The above commands are also available as Python functions.
