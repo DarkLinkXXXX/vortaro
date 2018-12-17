@@ -185,5 +185,7 @@ class Dictionary(Base):
     to_lang_id = Column(Integer, ForeignKey(Language.id), nullable=False)
     to_lang = relationship(Language, foreign_keys=[to_lang_id])
     to_word = Column(String, nullable=False)
+    to_length = column_property(func.length(to_word))
 
 Index('from_length', Dictionary.from_length)
+Index('to_length', Dictionary.to_length)

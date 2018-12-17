@@ -25,12 +25,13 @@ from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
 from . import (
     DATA,
     download, index, languages,
-    _search_query, DATABASE, ROWS, Word,
+    _search_query, DATABASE, ROWS, COLUMNS, Word,
 )
 
 logger = getLogger(__name__)
 
-def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
+def search(text: Word, limit: int=ROWS-2, *,
+        width: int=COLUMNS, database=DATABASE,
         from_langs: [str]=(), to_langs: [str]=()):
     '''
     Search for a word in the dictionaries.
@@ -53,21 +54,29 @@ def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
             Dictionary.to_word,
        #    FromLanguage.code,
        #    ToLanguage.code,
-       ).limit(limit)
+       )
+    if limit > 0:
+        q_main = q_main.limit(limit)
 
     # Determine column widths
-    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
+    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%0%ds'
     q_lengths = q_main.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
-            func.max(PartOfSpeech.length) + QUIET_COUNT,
-            func.max(FromLanguage.length) + QUIET_COUNT,
-            func.max(Dictionary.from_length) + HIGHLIGHT_COUNT,
-            func.max(ToLanguage.length) + QUIET_COUNT,
+            func.max(PartOfSpeech.length),
+            func.max(FromLanguage.length),
+            func.max(Dictionary.from_length),
+            func.max(ToLanguage.length),
+            func.max(Dictionary.to_length),
         )
-    row = q_lengths.one()
+    row = list(q_lengths.one())
     if any(row):
-        tpl_line = (meta_tpl % row).replace('\t', '  ')
+        if width > 0 and sum(row) > width:
+            row[2] -= sum(row) - width
+        for i in (0, 1, 3, 4):
+            row[i] += QUIET_COUNT
+        row[2] += HIGHLIGHT_COUNT
+        tpl_line = (meta_tpl % tuple(row)).replace('\t', '  ')
         for definition in q_main:
             line = (tpl_line % (
                 quiet(definition.part_of_speech.text),

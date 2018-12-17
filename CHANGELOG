@@ -1,0 +1,4 @@
+v1.0.1
+------
+
+* Limit from_word width for really long words.

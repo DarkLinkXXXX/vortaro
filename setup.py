@@ -30,7 +30,7 @@ setup(name='vortaro',
       classifiers=[
           'Programming Language :: Python :: 3.6',
       ],
-      version='1.0.0',
+      version='1.0.1',
       license='AGPL',
       entry_points = {
           'console_scripts': ['vortaro = vortaro.ui:ui']
