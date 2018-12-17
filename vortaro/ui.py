@@ -28,7 +28,7 @@ def ui():
     def configure(data_dir: Path=DATA):
         path = data_dir / config_name
         if path.exists():
-            raise horetu.Error(f'Configuration file already exists at {path}')
+            raise horetu.Error('Configuration file already exists at %s' % path)
         else:
             with path.open('w') as fp:
                 fp.write(horetu.config_default(program))

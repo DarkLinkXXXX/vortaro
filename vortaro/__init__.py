@@ -30,9 +30,10 @@ from .models import (
 from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
 from .formats import FORMATS
 
-DATABASE = 'postgresql:///vortaro'
-COLUMNS, ROWS = get_terminal_size((80, 20))
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
+DATABASE = 'sqlite:///%s/vortaro.sqlite' % DATA
+COLUMNS, ROWS = get_terminal_size((80, 20))
+CHUNKSIZE = 100000
 
 def Word(x):
     illegal = set('\t\n\r')
@@ -41,7 +42,7 @@ def Word(x):
     else:
         return x
 
-def download(source: tuple(FORMATS), noindex=False, chunksize: int=100000,
+def download(source: tuple(FORMATS), noindex=False, chunksize: int=CHUNKSIZE,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Download a dictionary.
@@ -59,7 +60,7 @@ def download(source: tuple(FORMATS), noindex=False, chunksize: int=100000,
     if not noindex:
         _index_subdir(session, chunksize, False, source, subdir)
 
-def index(*sources: tuple(FORMATS), refresh=False, chunksize: int=100000,
+def index(*sources: tuple(FORMATS), refresh=False, chunksize: int=CHUNKSIZE,
         data_dir: Path=DATA, database=DATABASE):
     '''
     Index dictionaries.
@@ -83,7 +84,7 @@ def _index_subdir(session, chunksize, refresh, format_name, directory):
             file = get_or_create(session, File, path=str(path), format=format)
             if refresh or file.out_of_date:
                 file.update(FORMATS[file.format.name].read, session, chunksize)
-                stderr.write(f'Indexed {path}\n')
+                stderr.write('Indexed %s\n' % path)
 
 def languages(database=DATABASE):
     '''

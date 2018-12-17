@@ -67,7 +67,7 @@ def use_identity(element, compiler, **kw):
     return text
 
 def whole_number(name):
-    return Column(Integer, CheckConstraint(f'{name} >= 0'), nullable=False)
+    return Column(Integer, CheckConstraint('%s >= 0' % name), nullable=False)
 
 class History(Base):
     __tablename__ = 'history'
