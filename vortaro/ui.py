@@ -49,9 +49,9 @@ def search(text: Word, limit: int=ROWS-2, *,
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .order_by(
             Dictionary.from_length,
+            Dictionary.from_word,
             Dictionary.from_length + Dictionary.to_length,
             PartOfSpeech.text,
-            Dictionary.from_word,
             Dictionary.to_word,
        #    FromLanguage.code,
        #    ToLanguage.code,
