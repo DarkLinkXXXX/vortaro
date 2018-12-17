@@ -9,6 +9,8 @@ Install from PyPI. ::
 
     pip3 install vortaro
 
+Command line
+~~~~~~~~~~~~
 Follow these directions to download a dictionary. ::
 
     python3 -m vortaro download dict.cc
@@ -35,10 +37,16 @@ For example, these return the same thing.
 Run these to see help. ::
 
     python3 -m vortaro
-    python3 -m vortaro languages -help
     python3 -m vortaro download -help
+    python3 -m vortaro languages -help
     python3 -m vortaro index -help
     python3 -m vortaro search -help
+
+Python
+~~~~~~
+The above commands are also available as Python functions.
+See ``vortaro.download``, ``vortaro.languages``, ``vortaro.index``,
+and ``vortaro.search``.
 
 Shell integration
 -----------------
@@ -56,6 +64,8 @@ Implementation
 This is a Python module.
 Source code is at https://thomaslevine.com/scm/vortaro/.
 The command line interface uses `horetu <https://pypi.python.org/pypi/horetu/>`_.
+
+I have tested it only on Python 3.6.
 
 History
 -------

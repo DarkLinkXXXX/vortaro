@@ -14,20 +14,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from sys import stdout, stderr
+from sys import stderr
 from os import environ, makedirs
 from pathlib import Path
+from collections import namedtuple
 from shutil import get_terminal_size
 
-from sqlalchemy import exists
 from sqlalchemy.sql import func, or_
 from sqlalchemy.orm import aliased
 
 from .models import (
     SessionMaker, get_or_create,
-    History, File, Language, PartOfSpeech, Dictionary, Format,
+    File, Language, PartOfSpeech, Dictionary, Format,
 )
-from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
 from .formats import FORMATS
 
 DATA = Path(environ.get('HOME', '.')) / '.vortaro'
@@ -95,23 +94,9 @@ def languages(database=DATABASE):
     session = SessionMaker(database)
     q = session.query(Language.code).order_by(Language.code)
     for language, in q.all():
-        stdout.write(language + '\n')
+        yield language
 
-def search(text: Word, limit: int=ROWS-2, *,
-           data_dir: Path=DATA,
-           database=DATABASE,
-           from_langs: [str]=(), to_langs: [str]=()):
-    '''
-    Search for a word in the dictionaries.
-
-    :param text: The word/fragment you are searching for
-    :param limit: Maximum number of words to return
-    :param from_langs: Languages the word is in, defaults to all
-    :param to_langs: Languages to look for translations, defaults to all
-    :param pathlib.Path data_dir: Vortaro data directory
-    :param database: PostgreSQL database URL
-    '''
-    session = SessionMaker(database)
+def _search_query(session, from_langs, to_langs, text):
     ToLanguage = aliased(Language)
     FromLanguage = aliased(Language)
     q_joins = session.query(Dictionary) \
@@ -136,39 +121,30 @@ def search(text: Word, limit: int=ROWS-2, *,
             Dictionary.to_word,
        #    FromLanguage.code,
        #    ToLanguage.code,
-       ).limit(limit)
+       )
+    return q_main, q_all, q_joins, FromLanguage, ToLanguage
 
-    # Determine column widths
-    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
-    q_lengths = q_main.from_self() \
-        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
-        .with_entities(
-            func.max(PartOfSpeech.length) + QUIET_COUNT,
-            func.max(FromLanguage.length) + QUIET_COUNT,
-            func.max(Dictionary.from_length) + HIGHLIGHT_COUNT,
-            func.max(ToLanguage.length) + QUIET_COUNT,
+SearchResult = namedtuple('SearchResult', (
+    'part_of_speech','from_lang', 'from_word', 'to_lang', 'to_word',
+))
+
+def search(text: Word, *, database=DATABASE,
+        from_langs: [str]=(), to_langs: [str]=()):
+    '''
+    Search for a word in the dictionaries.
+
+    :param text: The word/fragment you are searching for
+    :param from_langs: Languages the word is in, defaults to all
+    :param to_langs: Languages to look for translations, defaults to all
+    :param database: PostgreSQL database URL
+    '''
+    session = SessionMaker(database)
+    q_main, *_ = _search_query(session, from_langs, to_langs, text)
+    for definition in q_main:
+        yield SearchResult(
+            part_of_speech=definition.part_of_speech.text,
+            from_lang=definition.from_lang.code,
+            from_word=definition.from_original,
+            to_lang=definition.to_lang.code,
+            to_word=definition.to_word,
         )
-    row = q_lengths.one()
-    if any(row):
-        tpl_line = (meta_tpl % row).replace('\t', '  ')
-        for definition in q_main:
-            line = (tpl_line % (
-                quiet(definition.part_of_speech.text),
-                quiet(definition.from_lang.code),
-                definition.from_highlight(text),
-                quiet(definition.to_lang.code),
-                bold(definition.to_word),
-            ) + '\n')
-            # Remove the white space if POS is empty.
-            if row[0] == 0:
-                line = line[2:]
-            stdout.write(line)
-            stdout.flush()
-
-    session.add(History(
-        text=text,
-        total_results=q_all.count(),
-        displayed_results=limit,
-    ))
-    session.commit()
-

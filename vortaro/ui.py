@@ -18,10 +18,66 @@ from logging import getLogger
 from pathlib import Path
 
 import horetu
+from sqlalchemy.sql import func
 
-from . import download, index, search, languages, DATA
+from .models import SessionMaker, History, PartOfSpeech, Dictionary
+from .highlight import bold, quiet, HIGHLIGHT_COUNT, QUIET_COUNT
+from . import (
+    DATA,
+    download, index, languages,
+    _search_query, DATABASE, ROWS, Word,
+)
 
 logger = getLogger(__name__)
+
+def search(text: Word, limit: int=ROWS-2, *, database=DATABASE,
+        from_langs: [str]=(), to_langs: [str]=()):
+    '''
+    Search for a word in the dictionaries.
+
+    :param text: The word/fragment you are searching for
+    :param limit: Maximum number of words to return
+    :param from_langs: Languages the word is in, defaults to all
+    :param to_langs: Languages to look for translations, defaults to all
+    :param database: PostgreSQL database URL
+    '''
+    session = SessionMaker(database)
+    q_main, q_all, q_joins, FromLanguage, ToLanguage = _search_query(session, from_langs, to_langs, text)
+    q_joins = q_joins.limit(limit)
+
+    # Determine column widths
+    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
+    q_lengths = q_main.from_self() \
+        .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
+        .with_entities(
+            func.max(PartOfSpeech.length) + QUIET_COUNT,
+            func.max(FromLanguage.length) + QUIET_COUNT,
+            func.max(Dictionary.from_length) + HIGHLIGHT_COUNT,
+            func.max(ToLanguage.length) + QUIET_COUNT,
+        )
+    row = q_lengths.one()
+    if any(row):
+        tpl_line = (meta_tpl % row).replace('\t', '  ')
+        for definition in q_main:
+            line = (tpl_line % (
+                quiet(definition.part_of_speech.text),
+                quiet(definition.from_lang.code),
+                definition.from_highlight(text),
+                quiet(definition.to_lang.code),
+                bold(definition.to_word),
+            ) + '\n')
+            # Remove the white space if POS is empty.
+            if row[0] == 0:
+                line = line[2:]
+            yield line
+
+    session.add(History(
+        text=text,
+        total_results=q_all.count(),
+        displayed_results=limit,
+    ))
+    session.commit()
+
 
 def ui():
     config_name = 'config'
