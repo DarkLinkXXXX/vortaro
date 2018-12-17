@@ -59,7 +59,7 @@ def search(text: Word, limit: int=ROWS-2, *,
         q_main = q_main.limit(limit)
 
     # Determine column widths
-    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%0%ds'
+    meta_tpl = '%%-0%ds\t%%0%ds:%%-0%ds\t%%0%ds:%%s'
     q_lengths = q_main.from_self() \
         .join(PartOfSpeech, Dictionary.part_of_speech_id == PartOfSpeech.id) \
         .with_entities(
@@ -67,13 +67,15 @@ def search(text: Word, limit: int=ROWS-2, *,
             func.max(FromLanguage.length),
             func.max(Dictionary.from_length),
             func.max(ToLanguage.length),
-            func.max(Dictionary.to_length),
+        #   func.max(Dictionary.to_length),
         )
     row = list(q_lengths.one())
     if any(row):
-        if width > 0 and sum(row) > width:
-            row[2] -= sum(row) - width
-        for i in (0, 1, 3, 4):
+        estimated_actual_width = sum(row) + row[2]
+        estimated_available_width = width - estimated_actual_width
+        if estimated_available_width < 0 < width:
+            row[2] += int(estimated_available_width/2)
+        for i in (0, 1, 3):
             row[i] += QUIET_COUNT
         row[2] += HIGHLIGHT_COUNT
         tpl_line = (meta_tpl % tuple(row)).replace('\t', '  ')
