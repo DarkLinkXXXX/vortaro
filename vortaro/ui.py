@@ -83,7 +83,12 @@ def search(text: Word, limit: int=ROWS-2, *,
                 # TODO: This could be chosen more smartly based on word length
                 # distribution so that the white space is likely to be closed
                 # for most words.
-                row[2] = right + (-available_width/2)
+                diff = func.lead(Dictionary.from_length, 1, 0).over() \
+                    - Dictionary.from_length
+                row[2] = q_main.from_self() \
+                    .with_entities(Dictionary.from_length) \
+                    .order_by(desc(diff)).limit(1).scalar()
+                print(row[2])
 
         # Adjust for formatting.
         for i in (0, 1, 3):
