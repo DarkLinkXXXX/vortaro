@@ -88,7 +88,6 @@ def search(text: Word, limit: int=ROWS-2, *,
                 row[2] = q_main.from_self() \
                     .with_entities(Dictionary.from_length) \
                     .order_by(desc(diff)).limit(1).scalar()
-                print(row[2])
 
         # Adjust for formatting.
         for i in (0, 1, 3):
