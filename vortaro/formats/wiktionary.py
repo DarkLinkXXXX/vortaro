@@ -4,13 +4,12 @@ from urllib.parse import urlsplit
 from bz2 import BZ2File
 from xml.etree import ElementTree
 
-# import lxml.etree
 import lxml.html
 
 from .http import get
 
 URL = 'https://dumps.wikimedia.org/backup-index.html'
-TRANSLATION = re.compile(r'{{.\+\|')
+TRANSLATION_PLUS = re.compile(r'.*{{(.)\+\|.*')
 
 def hrefs(r, xpath):
     html = lxml.html.fromstring(r.content)
@@ -40,11 +39,16 @@ def read(path):
     '''
     with path.open('rb') as fp:
         with BZ2File(fp) as gp:
+            t = None
             title = None
             line = b''
             while True:
-                if title == None and line.startswith(b'  <title>'):
-                    title = _text(line)
+                if title == None:
+                    if line.startswith(b'    <title>'):
+                        title = _text(line)
+                    line = next(gp)
+                elif line == b'      <text xml:space="preserve" />\n':
+                    title = None
                     line = next(gp)
                 elif line.startswith(b'      <text'):
                     buf = line
@@ -52,15 +56,19 @@ def read(path):
                         line = next(gp)
                         buf += line
                     line = next(gp)
-                    print(buf.decode('utf-8'))
-                    for wikiline in _text(buf).split('\n'):
-                        if re.match(TRANSLATION, wikiline):
-                            print(wikiline)
+                    wikitext = _text(buf)
+                    if not t:
+                        for wikiline in wikitext.split('\n'):
+                            m = re.match(TRANSLATION_PLUS, wikiline)
+                            if m:
+                                t = m.group(1)
+                                title = None
+                                line = b''
+                                gp.seek(0)
                     title = None
                 else:
                     line = next(gp)
     exit()
 
 def _text(x):
-    # return str(lxml.etree.fromstring(x).text)
     return ElementTree.fromstring(x).text
