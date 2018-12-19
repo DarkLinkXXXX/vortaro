@@ -72,7 +72,6 @@ def read(path):
                                 continue
 
                             if re.match(TRANSLATION_PLUS, wikiline):
-                                print(wikiline)
                                 try:
                                     print(t.parseString(wikiline))
                                 except ParseException:
@@ -97,4 +96,8 @@ def _translations(t):
         Literal('|').suppress() + SkipTo(Literal('|') | Literal('}}').suppress())
     ) + Literal('}}').suppress()
     return (Literal('*') + Word(printables)).suppress() + \
-        OneOrMore(single.setParseAction(tuple) + Optional(SkipTo(Literal('{{')).suppress()))
+        OneOrMore(single.setParseAction(_brace_chunk) + Optional(SkipTo(Literal('{{')).suppress()))
+
+def _brace_chunk(tokens):
+    head, *tail = tokens
+    return (head, ', '.join(tail))
