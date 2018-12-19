@@ -8,6 +8,7 @@ import lxml.html
 from pyparsing import (
     Literal, Optional, OneOrMore, NotAny, SkipTo,
     ParseException,
+    printable, Word,
 )
 
 from .http import get
@@ -95,4 +96,4 @@ def _translations(t):
     single = Literal('{{' + t) + Optional('+') + OneOrMore(
         Literal('|') + SkipTo(Literal('|') | Literal('}}'))
     ) + Literal('}}')
-    return OneOrMore(single + Optional(NotAny(Literal('}}'))))
+    return Literal('*') + Word(printable) + OneOrMore(single + Optional(NotAny(Literal('}}'))))
