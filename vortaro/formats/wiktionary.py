@@ -46,16 +46,16 @@ def read(path):
     with path.open('rb') as fp:
         with BZ2File(fp) as gp:
             t = None
-            title = None
+            this_word = None
             line = b''
             this_language = path.name[:2] # default from file name
             while True:
-                if title == None:
+                if this_word == None:
                     if line.startswith(b'    <title>'):
-                        title = _text(line)
+                        this_word = _text(line)
                     line = next(gp)
                 elif line == b'      <text xml:space="preserve" />\n':
-                    title = None
+                    this_word = None
                     line = next(gp)
                 elif line.startswith(b'      <text'):
                     buf = line
@@ -71,11 +71,18 @@ def read(path):
                                 this_language = m.group(1)
                                 continue
 
-                            if re.match(TRANSLATION_PLUS, wikiline):
-                                try:
-                                    print(t.parseString(wikiline))
-                                except ParseException:
-                                    pass
+                            try:
+                                translations = t.parseString(wikiline)
+                            except ParseException:
+                                pass
+                            else:
+                                for that_language, that_word in translations:
+                                    yield {
+                                        'part_of_speech': '',
+                                        'from_lang': this_language,
+                                        'from_word': this_word,
+                                        'to_lang': that_language,
+                                        'to_word': that_word,
                     else:
                         for wikiline in wikilines:
                             m = re.match(TRANSLATION_PLUS, wikiline)
@@ -83,7 +90,7 @@ def read(path):
                                 t = _translations(m.group(1))
                                 line = b''
                                 gp.seek(0)
-                    title = None
+                    this_word = None
                 else:
                     line = next(gp)
     exit()
@@ -100,4 +107,4 @@ def _translations(t):
 
 def _brace_chunk(tokens):
     head, *tail = tokens
-    return (head, ', '.join(tail))
+    return (head, tail)
