@@ -5,11 +5,16 @@ from bz2 import BZ2File
 from xml.etree import ElementTree
 
 import lxml.html
+from pyparsing import (
+    Literal, Optional, OneOrMore, NotAny, SkipTo,
+    ParseException,
+)
 
 from .http import get
 
 URL = 'https://dumps.wikimedia.org/backup-index.html'
 TRANSLATION_PLUS = re.compile(r'.*{{(.)\+\|.*')
+THIS_LANGUAGE = re.compile(r'^==([^=]+)==')
 
 def hrefs(r, xpath):
     html = lxml.html.fromstring(r.content)
@@ -42,6 +47,7 @@ def read(path):
             t = None
             title = None
             line = b''
+            this_language = path.name[:2] # default from file name
             while True:
                 if title == None:
                     if line.startswith(b'    <title>'):
@@ -56,13 +62,25 @@ def read(path):
                         line = next(gp)
                         buf += line
                     line = next(gp)
-                    wikitext = _text(buf)
-                    if not t:
-                        for wikiline in wikitext.split('\n'):
+                    wikilines = _text(buf).split('\n')
+                    if t:
+                        for wikiline in wikilines:
+                            m = re.match(THIS_LANGUAGE, wikiline)
+                            if m:
+                                this_language = m.group(1)
+                                continue
+
+                            if re.match(TRANSLATION_PLUS, wikiline):
+                                print(wikiline)
+                                try:
+                                    print(t.parseString(wikiline))
+                                except ParseException:
+                                    pass
+                    else:
+                        for wikiline in wikilines:
                             m = re.match(TRANSLATION_PLUS, wikiline)
                             if m:
-                                t = m.group(1)
-                                title = None
+                                t = _translations(m.group(1))
                                 line = b''
                                 gp.seek(0)
                     title = None
