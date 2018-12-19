@@ -72,3 +72,9 @@ def read(path):
 
 def _text(x):
     return ElementTree.fromstring(x).text
+
+def _translations(t):
+    single = Literal('{{' + t) + Optional('+') + OneOrMore(
+        Literal('|') + SkipTo(Literal('|') | Literal('}}'))
+    ) + Literal('}}')
+    return OneOrMore(single + Optional(NotAny(Literal('}}'))))
