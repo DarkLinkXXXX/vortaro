@@ -14,7 +14,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import pickle
+from os import makedirs
 from textwrap import wrap
+from functools import partial
 from sys import stdout, stderr, exit
 from shutil import get_terminal_size
 
@@ -22,9 +25,20 @@ from requests import get as _get
 
 COLUMNS, ROWS = get_terminal_size((80, 20))
 
-def get(url):
-    return _get(url,
-                headers={'user-agent': 'https://pypi.python.org/pypi/vortaro'})
+def get(url, path=None):
+    f = partial(_get, url, headers={'user-agent': 'https://pypi.python.org/pypi/vortaro'})
+    if path == None:
+        r = f()
+    else:
+        makedirs(path.parent, exist_ok=True)
+        if path.exists():
+            with path.open('rb') as fp:
+                r = pickle.load(fp)
+        else:
+            r = f()
+            with path.open('wb') as fp:
+                pickle.dump(r, fp)
+    return r
 
 def simple_download(url, license, directory):
     for paragraph in license:

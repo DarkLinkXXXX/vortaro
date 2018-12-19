@@ -16,10 +16,11 @@
 
 from collections import OrderedDict
 
-from . import cedict, dictcc, espdic
+from . import cedict, dictcc, espdic, wiktionary
 
 FORMATS = OrderedDict((
     ('dict.cc', dictcc),
     ('cc-cedict', cedict),
     ('espdic', espdic),
+    ('wiktionary', wiktionary),
 ))
