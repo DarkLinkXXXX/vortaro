@@ -16,7 +16,7 @@ def hrefs(r, xpath):
 def download(directory):
     basename = '%s.html.p' % datetime.date.today()
     r = get(URL, directory / 'index' / basename)
-    for index in hrefs(r, '//a[contains(text(), "wiktionary")]/@href'):
+    for index in hrefs(r, '//a[contains(text(), "wiktionary")]/@href')[20:]:
         path = directory / 'subindex' / urlsplit(index).path[1:] / basename
         r = get(index, path)
         for dump in hrefs(r, '//a[contains(@href, "pages-meta-current.xml.bz2")]/@href'):
@@ -24,7 +24,7 @@ def download(directory):
             if not bz2.exists():
                 print(bz2)
                 r = get(dump)
-                with bz2.open('rb') as fp:
+                with bz2.open('wb') as fp:
                     fp.write(r.content)
             break
 
