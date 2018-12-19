@@ -83,6 +83,14 @@ def read(path):
                                         'from_word': this_word,
                                         'to_lang': that_language,
                                         'to_word': that_word,
+                                    }
+                                    yield {
+                                        'part_of_speech': '',
+                                        'from_lang': that_language,
+                                        'from_word': that_word,
+                                        'to_lang': this_language,
+                                        'to_word': this_word,
+                                    }
                     else:
                         for wikiline in wikilines:
                             m = re.match(TRANSLATION_PLUS, wikiline)
@@ -107,4 +115,4 @@ def _translations(t):
 
 def _brace_chunk(tokens):
     head, *tail = tokens
-    return (head, tail)
+    return (head, ', '.join(tail))
