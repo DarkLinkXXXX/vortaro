@@ -8,7 +8,7 @@ import lxml.html
 from pyparsing import (
     Literal, Optional, OneOrMore, NotAny, SkipTo,
     ParseException,
-    printable, Word,
+    printables, Word, LineEnd,
 )
 
 from .http import get
@@ -93,7 +93,8 @@ def _text(x):
     return ElementTree.fromstring(x).text
 
 def _translations(t):
-    single = Literal('{{' + t) + Optional('+') + OneOrMore(
-        Literal('|') + SkipTo(Literal('|') | Literal('}}'))
-    ) + Literal('}}')
-    return Literal('*') + Word(printable) + OneOrMore(single + Optional(NotAny(Literal('}}'))))
+    single = (Literal('{{' + t) + Optional('+')).suppress() + OneOrMore(
+        Literal('|').suppress() + SkipTo(Literal('|') | Literal('}}').suppress())
+    ) + Literal('}}').suppress()
+    return (Literal('*') + Word(printables)).suppress() + \
+        OneOrMore(single.setParseAction(tuple) + Optional(SkipTo(Literal('{{')).suppress()))
